@@ -1,9 +1,11 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 
 type Language = 'es' | 'en';
 type Audience = 'candidate' | 'employer';
+
+const tickerItems = ['STAFFING','RECRUITMENT','TALENT SOLUTIONS','EQUIPMENT RENTAL','NOM-050','OPERATIONAL SUPPORT'];
 
 const content = {
   es: {
@@ -138,7 +140,82 @@ export default function Home() {
   const [lang, setLang] = useState<Language>('es');
   const [audience, setAudience] = useState<Audience>('candidate');
   const [sent, setSent] = useState(false);
+  const [motionPaused, setMotionPaused] = useState(false);
+  const successHeadingRef = useRef<HTMLHeadingElement>(null);
   const t = content[lang];
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  useEffect(() => {
+    if (sent) successHeadingRef.current?.focus();
+  }, [sent]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduceMotion || !('IntersectionObserver' in window)) return;
+
+    root.classList.add('motion-ready');
+    const revealTargets = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
+    const parallaxTargets = Array.from(document.querySelectorAll<HTMLElement>('[data-parallax]'));
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.14, rootMargin: '0px 0px -8% 0px' });
+
+    revealTargets.forEach((target) => observer.observe(target));
+
+    let frame = 0;
+    const updateMotion = () => {
+      frame = 0;
+      const scrollRange = root.scrollHeight - window.innerHeight;
+      const progress = scrollRange > 0 ? Math.min(1, Math.max(0, window.scrollY / scrollRange)) : 0;
+      root.style.setProperty('--scroll-progress', progress.toString());
+
+      parallaxTargets.forEach((target) => {
+        if (window.innerWidth <= 760) {
+          target.style.setProperty('--parallax-y', '0px');
+          return;
+        }
+        const rect = target.getBoundingClientRect();
+        if (rect.bottom < -100 || rect.top > window.innerHeight + 100) return;
+        const distance = (rect.top + rect.height / 2 - window.innerHeight / 2) / window.innerHeight;
+        const intensity = Number(target.dataset.parallax || 14);
+        const offset = Math.max(-1, Math.min(1, distance)) * intensity;
+        target.style.setProperty('--parallax-y', `${offset}px`);
+      });
+    };
+
+    const requestMotionUpdate = () => {
+      if (!frame) frame = window.requestAnimationFrame(updateMotion);
+    };
+
+    requestMotionUpdate();
+    const updateVisibility = () => root.classList.toggle('page-hidden', document.hidden);
+    updateVisibility();
+    window.addEventListener('scroll', requestMotionUpdate, { passive: true });
+    window.addEventListener('resize', requestMotionUpdate);
+    document.addEventListener('visibilitychange', updateVisibility);
+
+    return () => {
+      observer.disconnect();
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', requestMotionUpdate);
+      window.removeEventListener('resize', requestMotionUpdate);
+      document.removeEventListener('visibilitychange', updateVisibility);
+      root.classList.remove('motion-ready');
+      root.classList.remove('page-hidden');
+      root.style.removeProperty('--scroll-progress');
+      parallaxTargets.forEach((target) => target.style.removeProperty('--parallax-y'));
+    };
+  }, []);
 
   const selectAudience = (next: Audience) => {
     setAudience(next);
@@ -151,7 +228,8 @@ export default function Home() {
   };
 
   return (
-    <main>
+    <main className={motionPaused ? 'motion-paused' : ''}>
+      <div className="scroll-progress" aria-hidden="true" />
       <div className="utility-bar">
         <span>{t.utility}</span>
         <span>1316 Zaragoza St. · Laredo, TX</span>
@@ -169,10 +247,10 @@ export default function Home() {
           <a href="#vacantes">{t.nav[2]}</a>
         </nav>
         <div className="nav-actions">
-          <div className="language-switch" aria-label="Language">
-            <button className={lang === 'es' ? 'active' : ''} onClick={() => setLang('es')}>ES</button>
+          <div className="language-switch" role="group" aria-label="Language">
+            <button type="button" aria-pressed={lang === 'es'} className={lang === 'es' ? 'active' : ''} onClick={() => setLang('es')}>ES</button>
             <span>/</span>
-            <button className={lang === 'en' ? 'active' : ''} onClick={() => setLang('en')}>EN</button>
+            <button type="button" aria-pressed={lang === 'en'} className={lang === 'en' ? 'active' : ''} onClick={() => setLang('en')}>EN</button>
           </div>
           <a className="square-cta dark" href="#contacto">{t.contact}<span>↗</span></a>
         </div>
@@ -189,31 +267,31 @@ export default function Home() {
           </div>
         </div>
         <div className="hero-image-wrap">
-          <figure><img src="/hero-operations-v2.png" alt={lang === 'es' ? 'Especialistas de reclutamiento y operaciones colaborando en un centro logístico' : 'Recruitment and operations specialists collaborating in a logistics center'} /></figure>
+          <figure data-parallax="10"><img src="/hero-operations-v2.png" width="1122" height="1402" fetchPriority="high" decoding="async" alt={lang === 'es' ? 'Especialistas de reclutamiento y operaciones colaborando en un centro logístico' : 'Recruitment and operations specialists collaborating in a logistics center'} /></figure>
           <div className="image-caption"><small>01 / TALENT SOLUTIONS</small><strong>{t.heroCard}</strong><span>{t.heroCardSub}</span></div>
           <div className="vertical-note">STAFFING / WORKFORCE / LAREDO</div>
         </div>
-        <div className="hero-signals">
-          {t.signals.map(([value,label]) => <div key={value}><strong>{value}</strong><span>{label}</span></div>)}
+        <div className="hero-signals" data-reveal="up">
+          {t.signals.map(([value,label], index) => <div key={value} data-reveal-delay={index + 1}><strong>{value}</strong><span>{label}</span></div>)}
         </div>
       </section>
 
-      <div className="moving-line" aria-hidden="true"><div>{['STAFFING','RECRUITMENT','TALENT SOLUTIONS','EQUIPMENT RENTAL','NOM-050','OPERATIONAL SUPPORT','STAFFING','RECRUITMENT','TALENT SOLUTIONS'].map((item,index) => <span key={`${item}-${index}`}>{item}<i>◆</i></span>)}</div></div>
+      <div className="moving-line"><div aria-hidden="true">{[...tickerItems, ...tickerItems].map((item,index) => <span key={`${item}-${index}`}>{item}<i>◆</i></span>)}</div><button type="button" aria-pressed={motionPaused} onClick={() => setMotionPaused((paused) => !paused)}>{motionPaused ? (lang === 'es' ? 'Reanudar' : 'Play') : (lang === 'es' ? 'Pausar' : 'Pause')}</button></div>
 
       <section className="statement-section page-grid">
         <p className="section-index">01 / PURPOSE</p>
-        <div><p className="micro-label"><span />{t.statementKicker}</p><h2>{t.statement}</h2></div>
+        <div data-reveal="up"><p className="micro-label"><span />{t.statementKicker}</p><h2>{t.statement}</h2></div>
       </section>
 
       <section className="path-section page-grid" id="caminos">
-        <div className="section-head"><div><p className="micro-label"><span />{t.pathsKicker}</p><h2>{t.pathsTitle}</h2></div><p className="section-index">02 / PATHS</p></div>
+        <div className="section-head" data-reveal="up"><div><p className="micro-label"><span />{t.pathsKicker}</p><h2>{t.pathsTitle}</h2></div><p className="section-index">02 / PATHS</p></div>
         <div className="path-cards">
-          {[['employer',t.employerPath,'/hero-operations-v2.png'],['candidate',t.candidatePath,'/recruitment-office-v2.png']].map(([kind,path,image]) => {
+          {[['employer',t.employerPath,'/hero-operations-v2.png'],['candidate',t.candidatePath,'/recruitment-office-v2.png']].map(([kind,path,image], index) => {
             const pathData = path as typeof t.employerPath;
             const next = kind as Audience;
-            return <article className={`path-panel ${next}`} key={next}>
+            return <article className={`path-panel ${next}`} key={next} data-reveal={index === 0 ? 'left' : 'right'} data-reveal-delay={index + 1}>
               <div className="panel-top"><span>{pathData.index}</span><b>{pathData.label}</b></div>
-              <div className="path-photo"><img src={image as string} alt="" /></div>
+              <div className="path-photo"><img src={image as string} width="1122" height="1402" loading="lazy" decoding="async" alt="" /></div>
               <h3>{pathData.title}</h3><p>{pathData.text}</p>
               <ul>{pathData.points.map(point => <li key={point}>{point}</li>)}</ul>
               <a href="#contacto" onClick={() => selectAudience(next)}>{pathData.cta}<span>↗</span></a>
@@ -224,47 +302,47 @@ export default function Home() {
 
       <section className="services-section" id="servicios">
         <div className="page-grid services-inner">
-          <div className="section-head inverted"><div><p className="micro-label gold-line"><span />{t.servicesKicker}</p><h2>{t.servicesTitle}</h2></div><p className="section-index">03 / SERVICES</p></div>
+          <div className="section-head inverted" data-reveal="up"><div><p className="micro-label gold-line"><span />{t.servicesKicker}</p><h2>{t.servicesTitle}</h2></div><p className="section-index">03 / SERVICES</p></div>
           <div className="service-list">
-            {t.services.map(([number,title,text]) => <article key={number}><span>{number}</span><h3>{title}</h3><p>{text}</p><i>↗</i></article>)}
+            {t.services.map(([number,title,text], index) => <article key={number} data-reveal="up" data-reveal-delay={(index % 6) + 1}><span>{number}</span><h3>{title}</h3><p>{text}</p><i>↗</i></article>)}
           </div>
         </div>
       </section>
 
       <section className="operations-story page-grid">
-        <div className="ops-gallery">
-          <figure className="transport-photo"><img src="/transport-shuttle-v2.png" alt={lang === 'es' ? 'Transporte de personal llegando a un centro logístico' : 'Employee transportation arriving at a logistics center'} /><figcaption>01 / TRANSPORT</figcaption></figure>
-          <figure className="equipment-photo"><img src="/yard-equipment-v2.png" alt={lang === 'es' ? 'Camión de patio y montacargas en una operación segura' : 'Yard truck and forklift in a safe operation'} /><figcaption>02 / EQUIPMENT</figcaption></figure>
+        <div className="ops-gallery" data-reveal="left">
+          <figure className="transport-photo" data-parallax="12"><img src="/transport-shuttle-v2.png" width="1536" height="1024" loading="lazy" decoding="async" alt={lang === 'es' ? 'Transporte de personal llegando a un centro logístico' : 'Employee transportation arriving at a logistics center'} /><figcaption>01 / TRANSPORT</figcaption></figure>
+          <figure className="equipment-photo" data-parallax="20"><img src="/yard-equipment-v2.png" width="1774" height="887" loading="lazy" decoding="async" alt={lang === 'es' ? 'Camión de patio y montacargas en una operación segura' : 'Yard truck and forklift in a safe operation'} /><figcaption>02 / EQUIPMENT</figcaption></figure>
         </div>
-        <div className="ops-copy"><p className="micro-label"><span />{t.operationsKicker}</p><h2>{t.operationsTitleA}<em>{t.operationsTitleB}</em></h2><p>{t.operationsText}</p><ul>{t.operationsPoints.map(point => <li key={point}>{point}</li>)}</ul><a className="text-cta" href="#contacto" onClick={() => selectAudience('employer')}>{t.employerCta}<span>↗</span></a></div>
+        <div className="ops-copy" data-reveal="right"><p className="micro-label"><span />{t.operationsKicker}</p><h2>{t.operationsTitleA}<em>{t.operationsTitleB}</em></h2><p>{t.operationsText}</p><ul>{t.operationsPoints.map(point => <li key={point}>{point}</li>)}</ul><a className="text-cta" href="#contacto" onClick={() => selectAudience('employer')}>{t.employerCta}<span>↗</span></a></div>
       </section>
 
       <section className="process-section-new" id="proceso">
         <div className="page-grid">
-          <div className="section-head"><div><p className="micro-label"><span />{t.processKicker}</p><h2>{t.processTitle}</h2></div><p className="section-index">04 / PROCESS</p></div>
-          <div className="process-track">{t.process.map(([number,title,text]) => <article key={number}><span>{number}</span><div><h3>{title}</h3><p>{text}</p></div></article>)}</div>
+          <div className="section-head" data-reveal="up"><div><p className="micro-label"><span />{t.processKicker}</p><h2>{t.processTitle}</h2></div><p className="section-index">04 / PROCESS</p></div>
+          <div className="process-track">{t.process.map(([number,title,text], index) => <article key={number} data-reveal="up" data-reveal-delay={index + 1}><span>{number}</span><div><h3>{title}</h3><p>{text}</p></div></article>)}</div>
         </div>
       </section>
 
       <section className="jobs-section" id="vacantes">
         <div className="page-grid job-layout">
-          <div className="job-copy"><p className="micro-label gold-line"><span />{t.jobKicker}</p><h2>{t.jobTitle}</h2><p>{t.jobText}</p><div className="tag-row">{t.jobTags.map(tag => <span key={tag}>{tag}</span>)}</div><a className="square-cta gold" href="#contacto" onClick={() => selectAudience('candidate')}>{t.jobCta}<span>↗</span></a></div>
-          <div className="pay-block"><strong>{t.jobPay}</strong><span>{t.jobPayUnit}</span><i> / HR</i></div>
-          <div className="role-cloud"><p>{t.rolesTitle}</p>{t.roles.map(role => <span key={role}>{role}</span>)}</div>
+          <div className="job-copy" data-reveal="left"><p className="micro-label gold-line"><span />{t.jobKicker}</p><h2>{t.jobTitle}</h2><p>{t.jobText}</p><div className="tag-row">{t.jobTags.map(tag => <span key={tag}>{tag}</span>)}</div><a className="square-cta gold" href="#contacto" onClick={() => selectAudience('candidate')}>{t.jobCta}<span>↗</span></a></div>
+          <div className="pay-block" data-reveal="right"><strong>{t.jobPay}</strong><span>{t.jobPayUnit}</span><i> / HR</i></div>
+          <div className="role-cloud" data-reveal="up"><p>{t.rolesTitle}</p>{t.roles.map((role, index) => <span key={role} data-reveal-delay={(index % 8) + 1}>{role}</span>)}</div>
         </div>
       </section>
 
       <section className="proof-section page-grid">
-        <div className="proof-copy"><p className="micro-label"><span />{t.proofKicker}</p><h2>{t.proofTitle}</h2><p>{t.proofText}</p><div>{t.proofPills.map(pill => <span key={pill}>{pill}</span>)}</div></div>
-        <figure><img src="/recruitment-office-v2.png" alt={lang === 'es' ? 'Entrevista de reclutamiento en una oficina de Laredo' : 'Recruitment interview in a Laredo office'} /><figcaption>1316 ZARAGOZA ST. / LAREDO, TX</figcaption></figure>
+        <div className="proof-copy" data-reveal="left"><p className="micro-label"><span />{t.proofKicker}</p><h2>{t.proofTitle}</h2><p>{t.proofText}</p><div>{t.proofPills.map(pill => <span key={pill}>{pill}</span>)}</div></div>
+        <figure data-reveal="right"><img src="/recruitment-office-v2.png" width="1122" height="1402" loading="lazy" decoding="async" alt={lang === 'es' ? 'Entrevista de reclutamiento en una oficina de Laredo' : 'Recruitment interview in a Laredo office'} /><figcaption>1316 ZARAGOZA ST. / LAREDO, TX</figcaption></figure>
       </section>
 
       <section className="contact-section-new" id="contacto">
         <div className="page-grid contact-layout">
-          <div className="contact-intro"><p className="micro-label gold-line"><span />{t.formKicker}</p><h2>{t.formTitle}</h2><p>{t.formIntro}</p><div className="contact-direct"><a href="https://wa.me/19566069956" target="_blank" rel="noreferrer"><small>WHATSAPP</small><b>+1 956 606 9956</b><span>↗</span></a><a href="mailto:operations@multiservicesldo.com"><small>EMAIL</small><b>operations@multiservicesldo.com</b><span>↗</span></a></div></div>
-          <div className="form-shell">
-            <div className="form-tabs" role="tablist"><button className={audience === 'candidate' ? 'active' : ''} onClick={() => selectAudience('candidate')}>{t.candidateTab}</button><button className={audience === 'employer' ? 'active' : ''} onClick={() => selectAudience('employer')}>{t.employerTab}</button></div>
-            {sent ? <div className="form-success" role="status"><span>✓</span><h3>{t.successTitle}</h3><p>{t.successText}</p><div><a className="square-cta gold" href="mailto:operations@multiservicesldo.com">{t.emailCta}<span>↗</span></a><a className="text-cta light" href="https://wa.me/19566069956" target="_blank" rel="noreferrer">{t.whatsappCta}<span>↗</span></a></div></div> : <form onSubmit={submit}>
+          <div className="contact-intro" data-reveal="left"><p className="micro-label gold-line"><span />{t.formKicker}</p><h2>{t.formTitle}</h2><p>{t.formIntro}</p><div className="contact-direct"><a href="https://wa.me/19566069956" target="_blank" rel="noreferrer"><small>WHATSAPP</small><b>+1 956 606 9956</b><span>↗</span></a><a href="mailto:operations@multiservicesldo.com"><small>EMAIL</small><b>operations@multiservicesldo.com</b><span>↗</span></a></div></div>
+          <div className="form-shell" data-reveal="right">
+            <div className="form-tabs" role="group" aria-label={lang === 'es' ? 'Tipo de solicitud' : 'Request type'}><button type="button" aria-pressed={audience === 'candidate'} className={audience === 'candidate' ? 'active' : ''} onClick={() => selectAudience('candidate')}>{t.candidateTab}</button><button type="button" aria-pressed={audience === 'employer'} className={audience === 'employer' ? 'active' : ''} onClick={() => selectAudience('employer')}>{t.employerTab}</button></div>
+            {sent ? <div className="form-success" role="status"><span>✓</span><h3 ref={successHeadingRef} tabIndex={-1}>{t.successTitle}</h3><p>{t.successText}</p><div><a className="square-cta gold" href="mailto:operations@multiservicesldo.com">{t.emailCta}<span>↗</span></a><a className="text-cta light" href="https://wa.me/19566069956" target="_blank" rel="noreferrer">{t.whatsappCta}<span>↗</span></a></div></div> : <form onSubmit={submit}>
               <div className="field-pair"><label>{t.name}<input name="name" required autoComplete="name" /></label><label>{t.phone}<input name="phone" required type="tel" autoComplete="tel" /></label></div>
               <label>{t.email}<input name="email" required type="email" autoComplete="email" /></label>
               {audience === 'candidate' ? <><label>{t.role}<input name="role" /></label><label className="file-field">{t.resume}<input name="resume" type="file" accept=".pdf,.doc,.docx" /><small>{t.resumeHint}</small></label></> : <><label>{t.company}<input name="company" required autoComplete="organization" /></label><label>{t.need}<textarea name="need" rows={4} required /></label></>}
@@ -276,7 +354,7 @@ export default function Home() {
       </section>
 
       <footer>
-        <div className="page-grid footer-grid"><div className="footer-brand"><img src="/logo.png" alt="Multiservices Laredo" /><h2>{t.footerLine1}<em>{t.footerLine2}</em></h2></div><div><b>{t.footerContact}</b><a href="tel:+19564411292">+1 956 441 1292</a><a href="https://wa.me/19566069956" target="_blank" rel="noreferrer">WhatsApp ↗</a><a href="mailto:operations@multiservicesldo.com">operations@multiservicesldo.com</a></div><div><b>{t.footerVisit}</b><a href="https://maps.google.com/?q=1316+Zaragoza+St+Laredo+TX+78040" target="_blank" rel="noreferrer">1316 Zaragoza St.<br />Laredo, TX 78040 ↗</a></div><div><b>{t.footerSocial}</b><a href="https://www.instagram.com/multiservicesldo" target="_blank" rel="noreferrer">Instagram ↗</a><span>Facebook</span></div></div>
+        <div className="page-grid footer-grid" data-reveal="up"><div className="footer-brand"><img src="/logo.png" alt="Multiservices Laredo" /><h2>{t.footerLine1}<em>{t.footerLine2}</em></h2></div><div><b>{t.footerContact}</b><a href="tel:+19564411292">+1 956 441 1292</a><a href="https://wa.me/19566069956" target="_blank" rel="noreferrer">WhatsApp ↗</a><a href="mailto:operations@multiservicesldo.com">operations@multiservicesldo.com</a></div><div><b>{t.footerVisit}</b><a href="https://maps.google.com/?q=1316+Zaragoza+St+Laredo+TX+78040" target="_blank" rel="noreferrer">1316 Zaragoza St.<br />Laredo, TX 78040 ↗</a></div><div><b>{t.footerSocial}</b><a href="https://www.instagram.com/multiservicesldo" target="_blank" rel="noreferrer">Instagram ↗</a><span>Facebook</span></div></div>
         <div className="page-grid footer-bottom"><span>© 2026 {t.footerLegal}</span><span>STAFFING / RECRUITMENT / TALENT SOLUTIONS</span><a href="#top">TOP ↑</a></div>
       </footer>
 
