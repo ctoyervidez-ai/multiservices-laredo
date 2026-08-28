@@ -139,7 +139,7 @@ const content = {
   },
 } as const;
 
-const photoWidths = [640, 960, 1440, 2400];
+const photoWidths = [640, 960, 1440];
 
 function ResponsivePhoto({ name, alt, portrait = false, priority = false, sizes = '100vw' }: { name: PhotoName; alt: string; portrait?: boolean; priority?: boolean; sizes?: string }) {
   const srcSet = (format: 'avif' | 'webp') => photoWidths.map((width) => `/media/${name}-${width}.${format} ${width}w`).join(', ');
@@ -168,9 +168,7 @@ export default function Home() {
   const [lang, setLang] = useState<Language>('es');
   const [audience, setAudience] = useState<Audience>('candidate');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [motionPaused, setMotionPaused] = useState(false);
   const [contactLinks, setContactLinks] = useState<{ email: string; whatsapp: string } | null>(null);
-  const heroVisualRef = useRef<HTMLDivElement>(null);
   const successHeadingRef = useRef<HTMLHeadingElement>(null);
   const t = content[lang];
 
@@ -190,48 +188,20 @@ export default function Home() {
   }, [menuOpen]);
 
   useEffect(() => {
-    const root = document.documentElement;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const nav = document.querySelector<HTMLElement>('.nav-shell');
-    let frame = 0;
-    const updateScroll = () => {
-      frame = 0;
-      const scrollRange = root.scrollHeight - window.innerHeight;
-      root.style.setProperty('--scroll-progress', (scrollRange > 0 ? Math.min(1, Math.max(0, window.scrollY / scrollRange)) : 0).toString());
-      nav?.classList.toggle('is-compact', window.scrollY > 44);
-      if (!reduceMotion && window.innerWidth > 800) {
-        document.querySelectorAll<HTMLElement>('[data-parallax]').forEach((target) => {
-          const rect = target.getBoundingClientRect();
-          if (rect.bottom < -120 || rect.top > window.innerHeight + 120) return;
-          const distance = (rect.top + rect.height / 2 - window.innerHeight / 2) / window.innerHeight;
-          target.style.setProperty('--parallax-y', `${Math.max(-1, Math.min(1, distance)) * Number(target.dataset.parallax || 12)}px`);
-        });
-      }
+    if (reduceMotion || !('IntersectionObserver' in window)) return;
+    const root = document.documentElement;
+    root.classList.add('motion-ready');
+    const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('is-visible');
+      observer.unobserve(entry.target);
+    }), { threshold: 0.08, rootMargin: '0px 0px -4% 0px' });
+    document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((target) => observer.observe(target));
+    return () => {
+      observer.disconnect();
+      root.classList.remove('motion-ready');
     };
-    const requestUpdate = () => { if (!frame) frame = window.requestAnimationFrame(updateScroll); };
-    if (!reduceMotion && 'IntersectionObserver' in window) {
-      root.classList.add('motion-ready');
-      const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add('is-visible');
-        observer.unobserve(entry.target);
-      }), { threshold: 0.12, rootMargin: '0px 0px -7% 0px' });
-      document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((target) => observer.observe(target));
-      requestUpdate();
-      window.addEventListener('scroll', requestUpdate, { passive: true });
-      window.addEventListener('resize', requestUpdate);
-      return () => {
-        observer.disconnect();
-        if (frame) window.cancelAnimationFrame(frame);
-        window.removeEventListener('scroll', requestUpdate);
-        window.removeEventListener('resize', requestUpdate);
-        root.classList.remove('motion-ready');
-        root.style.removeProperty('--scroll-progress');
-      };
-    }
-    updateScroll();
-    window.addEventListener('scroll', requestUpdate, { passive: true });
-    return () => window.removeEventListener('scroll', requestUpdate);
   }, []);
 
   const chooseAudience = (next: Audience) => {
@@ -262,10 +232,9 @@ export default function Home() {
   ];
 
   return (
-    <main className={[motionPaused ? 'motion-paused' : '', menuOpen ? 'menu-open' : ''].filter(Boolean).join(' ')}>
+    <main className={menuOpen ? 'menu-open' : ''}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }} />
       <a className="skip-link" href="#contenido">{lang === 'es' ? 'Saltar al contenido' : 'Skip to content'}</a>
-      <div className="scroll-progress" aria-hidden="true" />
       <div className="utility-bar"><span>{t.utility}</span><span>{t.availability}</span><a href="tel:+19564411292">+1 956 441 1292</a></div>
 
       <header className="nav-shell">
@@ -302,21 +271,17 @@ export default function Home() {
               <div className="hero-actions"><a className="primary-button" href="#contacto" onClick={() => chooseAudience('employer')}>{t.employerCta}<span>↗</span></a><a className="secondary-button" href="#contacto" onClick={() => chooseAudience('candidate')}>{t.candidateCta}<span>↓</span></a></div>
               <div className="hero-signals">{t.signals.map(([value, label]) => <div key={value}><strong>{value}</strong><span>{label}</span></div>)}</div>
             </div>
-            <div className="hero-visual" ref={heroVisualRef} data-reveal="image" onPointerMove={(event) => {
-              const box = heroVisualRef.current?.getBoundingClientRect();
-              if (!box) return;
-              heroVisualRef.current?.style.setProperty('--mx', `${((event.clientX - box.left) / box.width) * 100}%`);
-              heroVisualRef.current?.style.setProperty('--my', `${((event.clientY - box.top) / box.height) * 100}%`);
-            }}>
-              <div className="hero-photo" data-parallax="9"><ResponsivePhoto name="ms-hero" portrait priority sizes="(max-width: 780px) 100vw, 48vw" alt={lang === 'es' ? 'Supervisora bilingüe y líder operativo revisando un plan de trabajo en un centro logístico' : 'Bilingual supervisor and operations lead reviewing a work plan in a logistics center'} /></div>
-              <div className="hero-status"><i /><span>{t.liveLabel}</span><strong>ES / EN</strong></div>
-              <div className="hero-card"><small>01 / TALENT SOLUTIONS</small><strong>{t.heroBadge}</strong><span>{t.heroBadgeSub}</span></div>
-              <div className="hero-coordinate">27.5064° N<br />99.5075° W</div>
+            <div className="hero-visual" data-reveal="image">
+              <div className="hero-photo"><ResponsivePhoto name="ms-hero" portrait priority sizes="(max-width: 780px) calc(100vw - 32px), 500px" alt={lang === 'es' ? 'Supervisora bilingüe y líder operativo revisando un plan de trabajo en un centro logístico' : 'Bilingual supervisor and operations lead reviewing a work plan in a logistics center'} /></div>
+              <div className="hero-photo-meta">
+                <div className="hero-card"><small>01 / TALENT SOLUTIONS</small><strong>{t.heroBadge}</strong><span>{t.heroBadgeSub}</span></div>
+                <div className="hero-status"><i /><span>{t.liveLabel}</span><strong>ES / EN</strong></div>
+              </div>
             </div>
           </div>
         </section>
 
-        <div className="moving-line"><div aria-hidden="true">{[...tickerItems, ...tickerItems].map((item, index) => <span key={`${item}-${index}`}>{item}<i>◆</i></span>)}</div><button type="button" aria-pressed={motionPaused} onClick={() => setMotionPaused((paused) => !paused)}>{motionPaused ? (lang === 'es' ? 'Reanudar' : 'Play') : (lang === 'es' ? 'Pausar' : 'Pause')}</button></div>
+        <div className="moving-line"><div aria-hidden="true">{tickerItems.map((item) => <span key={item}>{item}<i>◆</i></span>)}</div></div>
 
         <section className="metric-rail page-width" aria-label={lang === 'es' ? 'Resumen de capacidades' : 'Capability summary'}>
           {t.metrics.map(([value, label], index) => <div data-reveal="up" style={{ '--delay': `${index * 70}ms` } as CSSProperties} key={value}><strong>{value}</strong><span>{label}</span></div>)}
@@ -326,11 +291,11 @@ export default function Home() {
           <div className="section-heading" data-reveal="up"><div><p className="eyebrow"><span />{t.audienceKicker}</p><h2>{t.audienceTitle}</h2></div><p>01 / START</p></div>
           <div className="audience-grid">
             <article className="audience-card employer-card" data-reveal="left">
-              <div className="audience-photo"><ResponsivePhoto name="ms-safety" sizes="(max-width: 780px) 100vw, 50vw" alt={lang === 'es' ? 'Equipo operativo en una reunión de seguridad frente a muelles de carga' : 'Operations team in a safety meeting by loading docks'} /></div>
+              <div className="audience-employer-panel" aria-hidden="true"><small>WORKFORCE</small><strong>{lang === 'es' ? 'PERSONAS' : 'PEOPLE'}</strong><span>+</span><strong>{lang === 'es' ? 'OPERACIÓN' : 'OPERATIONS'}</strong><i>ES / EN · LAREDO</i></div>
               <div className="audience-card-body"><p><span>01</span>{t.employer.label}</p><h3>{t.employer.title}</h3><div className="audience-copy"><p>{t.employer.text}</p><ul>{t.employer.points.map((point) => <li key={point}>{point}</li>)}</ul></div><a href="#contacto" onClick={() => chooseAudience('employer')}>{t.employer.cta}<span>↗</span></a></div>
             </article>
             <article className="audience-card candidate-card" data-reveal="right">
-              <div className="audience-photo"><ResponsivePhoto name="ms-recruiter" portrait sizes="(max-width: 780px) 100vw, 50vw" alt={lang === 'es' ? 'Reclutadora bilingüe atendiendo a un candidato en una oficina contemporánea' : 'Bilingual recruiter meeting a candidate in a contemporary office'} /></div>
+              <div className="audience-photo"><ResponsivePhoto name="ms-recruiter" portrait sizes="(max-width: 780px) calc(100vw - 32px), 360px" alt={lang === 'es' ? 'Reclutadora bilingüe atendiendo a un candidato en una oficina contemporánea' : 'Bilingual recruiter meeting a candidate in a contemporary office'} /></div>
               <div className="audience-card-body"><p><span>02</span>{t.candidate.label}</p><h3>{t.candidate.title}</h3><div className="audience-copy"><p>{t.candidate.text}</p><ul>{t.candidate.points.map((point) => <li key={point}>{point}</li>)}</ul></div><a href="#contacto" onClick={() => chooseAudience('candidate')}>{t.candidate.cta}<span>↗</span></a></div>
             </article>
           </div>
@@ -340,9 +305,8 @@ export default function Home() {
           <div className="page-width">
             <div className="industries-intro" data-reveal="up"><p className="eyebrow gold"><span />{t.industriesKicker}</p><h2>{t.industriesTitle}</h2><p>{t.industriesIntro}</p></div>
             <div className="industry-mosaic">
-              {t.industries.map(([title, text], index) => <article className={`industry-card industry-${index + 1}`} key={title} data-reveal="image">
-                <div className="industry-image"><ResponsivePhoto name={(['ms-hero', 'ms-yard', 'ms-safety', 'ms-recruiter'] as PhotoName[])[index]} portrait={index === 0 || index === 3} sizes="(max-width: 780px) 100vw, 50vw" alt="" /></div>
-                <div><span>0{index + 1}</span><h3>{title}</h3><p>{text}</p></div>
+              {t.industries.map(([title, text], index) => <article className={`industry-card industry-${index + 1}`} key={title} data-reveal="up">
+                <span>0{index + 1}</span><h3>{title}</h3><p>{text}</p>
               </article>)}
             </div>
           </div>
@@ -358,8 +322,8 @@ export default function Home() {
 
         <section className="operations-section page-width">
           <div className="operations-gallery" data-reveal="left">
-            <figure className="safety-photo" data-parallax="10"><ResponsivePhoto name="ms-safety" sizes="(max-width: 780px) 90vw, 44vw" alt={lang === 'es' ? 'Cuadrilla reunida para una charla de seguridad en un centro logístico' : 'Crew gathered for a safety talk in a logistics center'} /><figcaption>{t.safetyLabel}</figcaption></figure>
-            <figure className="yard-photo" data-parallax="18"><ResponsivePhoto name="ms-yard" sizes="(max-width: 780px) 64vw, 30vw" alt={lang === 'es' ? 'Operador de montacargas y camión de patio trabajando de forma segura' : 'Forklift operator and yard truck working safely'} /><figcaption>{t.yardLabel}</figcaption></figure>
+            <figure className="safety-photo"><ResponsivePhoto name="ms-safety" sizes="(max-width: 780px) calc(100vw - 32px), 24vw" alt={lang === 'es' ? 'Cuadrilla reunida para una charla de seguridad en un centro logístico' : 'Crew gathered for a safety talk in a logistics center'} /><figcaption>{t.safetyLabel}</figcaption></figure>
+            <figure className="yard-photo"><ResponsivePhoto name="ms-yard" sizes="(max-width: 780px) calc(100vw - 32px), 24vw" alt={lang === 'es' ? 'Operador de montacargas y camión de patio trabajando de forma segura' : 'Forklift operator and yard truck working safely'} /><figcaption>{t.yardLabel}</figcaption></figure>
           </div>
           <div className="operations-copy" data-reveal="right"><p className="eyebrow"><span />{t.operationsKicker}</p><h2>{t.operationsTitleA}<em>{t.operationsTitleB}</em></h2><p>{t.operationsText}</p><ul>{t.operationsPoints.map((point) => <li key={point}>{point}</li>)}</ul><a href="#contacto" className="secondary-button" onClick={() => chooseAudience('employer')}>{t.employerCta}<span>↗</span></a></div>
         </section>
@@ -414,7 +378,6 @@ export default function Home() {
         <div className="page-width footer-grid"><div className="footer-brand"><img src="/logo-optimized.webp" width="80" height="82" alt="Multiservices Laredo" /><h2>{t.footerLine1}<em>{t.footerLine2}</em></h2></div><div><b>{t.footerContact}</b><a href="tel:+19564411292">+1 956 441 1292</a><a href="https://wa.me/19566069956" target="_blank" rel="noreferrer">WhatsApp ↗</a><a href="mailto:operations@multiservicesldo.com">operations@multiservicesldo.com</a></div><div><b>{t.footerVisit}</b><a href="https://maps.google.com/?q=1316+Zaragoza+St+Laredo+TX+78040" target="_blank" rel="noreferrer">1316 Zaragoza St.<br />Laredo, TX 78040 ↗</a></div><div><b>{t.footerSocial}</b><a href="https://www.instagram.com/multiservicesldo" target="_blank" rel="noreferrer">Instagram ↗</a></div></div>
         <div className="page-width footer-bottom"><span>© 2026 Multiservices Laredo LLC</span><span>STAFFING / RECRUITMENT / TALENT SOLUTIONS</span><a href="#top">TOP ↑</a></div>
       </footer>
-      <nav className="mobile-action-bar" aria-label={lang === 'es' ? 'Acciones rápidas' : 'Quick actions'}><a href="#contacto" onClick={() => chooseAudience('candidate')}><span>↗</span>{t.mobileApply}</a><a href="#contacto" onClick={() => chooseAudience('employer')}><span>+</span>{t.mobileHire}</a><a href="tel:+19564411292"><span>☎</span>{t.mobileCall}</a></nav>
     </main>
   );
 }
