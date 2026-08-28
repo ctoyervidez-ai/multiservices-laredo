@@ -189,7 +189,7 @@ export default function Home() {
           </div>
         </div>
         <div className="hero-image-wrap">
-          <figure><img src="/hero-team.jpg" alt={lang === 'es' ? 'Profesionales colaborando en una operación' : 'Professionals collaborating in an operation'} /></figure>
+          <figure><img src="/hero-operations-v2.png" alt={lang === 'es' ? 'Especialistas de reclutamiento y operaciones colaborando en un centro logístico' : 'Recruitment and operations specialists collaborating in a logistics center'} /></figure>
           <div className="image-caption"><small>01 / TALENT SOLUTIONS</small><strong>{t.heroCard}</strong><span>{t.heroCardSub}</span></div>
           <div className="vertical-note">STAFFING / WORKFORCE / LAREDO</div>
         </div>
@@ -208,7 +208,7 @@ export default function Home() {
       <section className="path-section page-grid" id="caminos">
         <div className="section-head"><div><p className="micro-label"><span />{t.pathsKicker}</p><h2>{t.pathsTitle}</h2></div><p className="section-index">02 / PATHS</p></div>
         <div className="path-cards">
-          {[['employer',t.employerPath,'/office.jpg'],['candidate',t.candidatePath,'/hero-team.jpg']].map(([kind,path,image]) => {
+          {[['employer',t.employerPath,'/hero-operations-v2.png'],['candidate',t.candidatePath,'/recruitment-office-v2.png']].map(([kind,path,image]) => {
             const pathData = path as typeof t.employerPath;
             const next = kind as Audience;
             return <article className={`path-panel ${next}`} key={next}>
@@ -233,8 +233,8 @@ export default function Home() {
 
       <section className="operations-story page-grid">
         <div className="ops-gallery">
-          <figure className="transport-photo"><img src="/transport.jpg" alt={lang === 'es' ? 'Transporte disponible para proyectos seleccionados' : 'Transportation available for selected projects'} /><figcaption>01 / TRANSPORT</figcaption></figure>
-          <figure className="equipment-photo"><img src="/equipment.jpg" alt={lang === 'es' ? 'Equipo de patio y montacargas' : 'Yard equipment and forklift'} /><figcaption>02 / EQUIPMENT</figcaption></figure>
+          <figure className="transport-photo"><img src="/transport-shuttle-v2.png" alt={lang === 'es' ? 'Transporte de personal llegando a un centro logístico' : 'Employee transportation arriving at a logistics center'} /><figcaption>01 / TRANSPORT</figcaption></figure>
+          <figure className="equipment-photo"><img src="/yard-equipment-v2.png" alt={lang === 'es' ? 'Camión de patio y montacargas en una operación segura' : 'Yard truck and forklift in a safe operation'} /><figcaption>02 / EQUIPMENT</figcaption></figure>
         </div>
         <div className="ops-copy"><p className="micro-label"><span />{t.operationsKicker}</p><h2>{t.operationsTitleA}<em>{t.operationsTitleB}</em></h2><p>{t.operationsText}</p><ul>{t.operationsPoints.map(point => <li key={point}>{point}</li>)}</ul><a className="text-cta" href="#contacto" onClick={() => selectAudience('employer')}>{t.employerCta}<span>↗</span></a></div>
       </section>
@@ -256,7 +256,7 @@ export default function Home() {
 
       <section className="proof-section page-grid">
         <div className="proof-copy"><p className="micro-label"><span />{t.proofKicker}</p><h2>{t.proofTitle}</h2><p>{t.proofText}</p><div>{t.proofPills.map(pill => <span key={pill}>{pill}</span>)}</div></div>
-        <figure><img src="/office.jpg" alt={lang === 'es' ? 'Oficina de Multiservices Laredo' : 'Multiservices Laredo office'} /><figcaption>1316 ZARAGOZA ST. / LAREDO, TX</figcaption></figure>
+        <figure><img src="/recruitment-office-v2.png" alt={lang === 'es' ? 'Entrevista de reclutamiento en una oficina de Laredo' : 'Recruitment interview in a Laredo office'} /><figcaption>1316 ZARAGOZA ST. / LAREDO, TX</figcaption></figure>
       </section>
 
       <section className="contact-section-new" id="contacto">
