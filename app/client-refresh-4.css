@@ -1,0 +1,494 @@
+@keyframes image-reveal {
+  from {
+    opacity: 0;
+    transform: scale(1.035);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes service-fade {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 1180px) {
+  .site-header {
+    grid-template-columns: 1fr auto;
+  }
+
+  .desktop-nav {
+    display: none;
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr) minmax(390px, 0.82fr);
+  }
+
+  .hero h1 {
+    font-size: clamp(3.8rem, 7vw, 6.3rem);
+  }
+
+  .statement-section {
+    grid-template-columns: 0.75fr 1.75fr;
+  }
+
+  .strength-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .strength-grid article:nth-child(2) {
+    border-right: 0;
+  }
+
+  .strength-grid article:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .strength-grid article:nth-child(3) {
+    padding-left: 0;
+  }
+
+  .strength-grid article:nth-child(4) {
+    padding-right: 0;
+  }
+
+  .service-stage {
+    grid-template-columns: minmax(0, 1.25fr) minmax(270px, 0.75fr);
+  }
+
+  .service-feature-copy {
+    grid-template-columns: 48px 1fr;
+  }
+
+  .service-feature-copy .arrow-link {
+    grid-column: 2;
+    grid-row: auto;
+    margin-top: 12px;
+  }
+
+  .process-section {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .utility-bar {
+    grid-template-columns: 1fr auto;
+    padding: 0 18px;
+  }
+
+  .utility-bar span:nth-child(2) {
+    display: none;
+  }
+
+  .site-header {
+    min-height: 80px;
+    padding: 0 18px;
+  }
+
+  .brand-logo {
+    width: 58px;
+    height: 58px;
+  }
+
+  .header-cta {
+    display: none;
+  }
+
+  .header-actions {
+    gap: 0;
+  }
+
+  .hero,
+  .statement-section,
+  .service-stage,
+  .transport-section,
+  .process-section,
+  .application-section {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    min-height: auto;
+  }
+
+  .hero-copy {
+    padding: 88px 6vw 66px;
+  }
+
+  .hero-visual {
+    min-height: min(760px, 105vw);
+  }
+
+  .statement-section,
+  .process-section,
+  .application-section {
+    gap: 58px;
+  }
+
+  .statement-copy {
+    padding-right: 0;
+    padding-bottom: 46px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .services-intro,
+  .talent-heading {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .service-feature-image {
+    min-height: min(560px, 72vw);
+  }
+
+  .service-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .service-selector > button:nth-child(odd) {
+    border-right: 1px solid var(--line);
+  }
+
+  .service-controls {
+    grid-column: 1 / -1;
+  }
+
+  .transport-copy {
+    padding: 82px 6vw;
+  }
+
+  .transport-visual {
+    min-height: min(620px, 75vw);
+  }
+
+  .application-intro {
+    padding-top: 0;
+  }
+
+  .talent-categories {
+    grid-template-columns: 1fr;
+  }
+
+  .talent-categories article,
+  .talent-categories article:first-child,
+  .talent-categories article:last-child {
+    min-height: auto;
+    padding: 30px 0 36px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .talent-categories article:last-child {
+    border-bottom: 0;
+  }
+
+  .talent-categories h3 {
+    margin-top: 24px;
+  }
+
+  .talent-categories ul {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 24px;
+    margin-top: 24px;
+  }
+
+  .contact-paths,
+  .contact-details {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-details > a,
+  .contact-details > a + a {
+    min-height: 74px;
+    padding: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--line-dark);
+  }
+
+  .contact-details > a:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  body {
+    padding-bottom: 62px;
+  }
+
+  .utility-bar {
+    min-height: 31px;
+    font-size: 0.52rem;
+    letter-spacing: 0.09em;
+  }
+
+  .utility-bar span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .brand-lockup > span {
+    display: flex;
+  }
+
+  .brand-logo {
+    width: 50px;
+    height: 50px;
+  }
+
+  .brand-lockup {
+    gap: 9px;
+  }
+
+  .brand-lockup strong {
+    font-size: 0.92rem;
+  }
+
+  .brand-lockup small {
+    margin-top: 5px;
+    font-size: 0.55rem;
+  }
+
+  .language-switcher button {
+    min-width: 36px;
+    padding: 7px 8px;
+  }
+
+  .hero-copy {
+    padding: 68px 20px 52px;
+  }
+
+  .hero h1 {
+    font-size: clamp(3.35rem, 17vw, 5.2rem);
+  }
+
+  .hero-tagline {
+    margin-top: 27px;
+    font-size: 1.48rem;
+  }
+
+  .hero-actions,
+  .talent-actions {
+    flex-direction: column;
+  }
+
+  .button {
+    width: 100%;
+  }
+
+  .hero-visual {
+    min-height: 125vw;
+  }
+
+  .hero-image-label {
+    right: 14px;
+    bottom: 14px;
+    left: 14px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .statement-section,
+  .services-showcase,
+  .talent-section,
+  .process-section,
+  .application-section,
+  .contact-section {
+    padding: 78px 20px;
+  }
+
+  .statement-copy h2,
+  .section-intro h2,
+  .process-intro h2,
+  .application-intro h2,
+  .contact-section h2,
+  .transport-copy h2 {
+    font-size: clamp(2.75rem, 13vw, 4.25rem);
+  }
+
+  .strength-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .strength-grid article,
+  .strength-grid article:first-child,
+  .strength-grid article:nth-child(3),
+  .strength-grid article:last-child {
+    padding: 28px 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .strength-grid article:last-child {
+    border-bottom: 0;
+  }
+
+  .strength-grid h3 {
+    margin-top: 24px;
+  }
+
+  .service-stage {
+    margin-right: -20px;
+    margin-left: -20px;
+    border-right: 0;
+    border-left: 0;
+    box-shadow: none;
+  }
+
+  .service-feature-image {
+    min-height: 66vw;
+  }
+
+  .service-feature-copy {
+    grid-template-columns: 1fr;
+    padding: 28px 20px 34px;
+  }
+
+  .service-feature-copy > span,
+  .service-feature-copy h3,
+  .service-feature-copy > p,
+  .service-feature-copy > small,
+  .service-feature-copy .arrow-link {
+    grid-column: 1;
+  }
+
+  .service-feature-copy h3 {
+    font-size: 2.35rem;
+  }
+
+  .service-feature-copy .arrow-link {
+    width: 100%;
+    min-width: 0;
+    margin-top: 10px;
+  }
+
+  .service-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .service-selector > button:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .service-selector > button {
+    min-height: 76px;
+  }
+
+  .transport-copy {
+    padding: 78px 20px 66px;
+  }
+
+  .transport-copy .button {
+    width: 100%;
+  }
+
+  .transport-visual {
+    min-height: 72vw;
+  }
+
+  .transport-areas {
+    right: 14px;
+    bottom: 14px;
+    left: 14px;
+    padding: 16px;
+  }
+
+  .transport-areas strong {
+    font-size: 1.05rem;
+  }
+
+  .application-panel {
+    margin-right: -20px;
+    margin-left: -20px;
+    padding: 32px 20px;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .application-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-field-wide {
+    grid-column: auto;
+  }
+
+  .talent-categories ul {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-paths {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-paths article {
+    min-height: 390px;
+    padding: 30px 22px;
+  }
+
+  .contact-paths h3 {
+    margin-top: 50px;
+  }
+
+  .site-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 34px 20px;
+  }
+
+  .mobile-actionbar {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 120;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 62px;
+    box-shadow: 0 -8px 28px rgba(4, 26, 53, 0.18);
+  }
+
+  .mobile-actionbar a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    background: var(--paper);
+    color: var(--navy-deep);
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .mobile-actionbar a:last-child {
+    background: var(--gold-bright);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
