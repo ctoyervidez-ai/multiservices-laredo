@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./client-refresh-1.css";
+import "./client-refresh-2.css";
+import "./client-refresh-3.css";
+import "./client-refresh-4.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://ethrovsdraft.com"),
