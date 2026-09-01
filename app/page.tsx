@@ -4,9 +4,16 @@ import { FormEvent, type CSSProperties, useEffect, useRef, useState } from 'reac
 
 type Language = 'es' | 'en';
 type Audience = 'candidate' | 'employer';
-type PhotoName = 'ms-hero' | 'ms-safety' | 'ms-yard' | 'ms-recruiter';
+type PhotoName =
+  | 'ms-hero'
+  | 'ms-safety'
+  | 'service-labeling'
+  | 'service-yard-mule'
+  | 'transport-main'
+  | 'transport-arrival';
 
 const tickerItems = ['STAFFING', 'RECRUITMENT', 'WAREHOUSE', 'TEMP → HIRE', 'EQUIPMENT', 'NOM-050', 'LAREDO, TX'];
+const showcaseImages: PhotoName[] = ['service-labeling', 'ms-safety', 'service-yard-mule'];
 
 const content = {
   es: {
@@ -21,6 +28,9 @@ const content = {
     heroBadge: 'Una extensión de tu equipo', heroBadgeSub: 'Staffing · Workforce · Soporte operativo', liveLabel: 'Respuesta desde Laredo',
     signals: [['ES / EN', 'Equipo bilingüe'], ['TEMP → HIRE', 'Contratación flexible'], ['LOCAL', 'Conocimiento del mercado']],
     metrics: [['06', 'soluciones integradas'], ['04', 'pasos con seguimiento'], ['ES/EN', 'atención bilingüe'], ['LDO', 'presencia local']],
+    purposeKicker: 'Más que cubrir una vacante',
+    purposeTitle: 'Detrás de una operación eficiente, siempre hay un buen equipo.',
+    purposeAccent: 'Nosotros te ayudamos a construirlo.',
     audienceKicker: 'Dos caminos. Una misma promesa.', audienceTitle: 'Hacer que el siguiente movimiento sea más fácil.',
     employer: { label: 'Para empresas', title: 'Personal preparado sin perder el ritmo.', text: 'Cuéntanos el puesto, el turno y la urgencia. Diseñamos la respuesta alrededor de tu operación.', points: ['Temporal y por proyecto', 'Temp-to-hire', 'Contratación directa'], cta: 'Solicitar talento' },
     candidate: { label: 'Para candidatos', title: 'Una oportunidad que sí encaja contigo.', text: 'Explora posiciones operativas, administrativas y de liderazgo con acompañamiento bilingüe.', points: ['Aplicación sencilla', 'Seguimiento cercano', 'Oportunidades locales'], cta: 'Ver oportunidades' },
@@ -41,10 +51,13 @@ const content = {
       ['05', 'Apoyo migratorio', 'Preparación y gestión de trámites mediante un proceso claro, organizado y personalizado.'],
       ['06', 'Eventos corporativos', 'Planeación, ambientación, montaje, inauguraciones y experiencias para equipos y empresas.'],
     ],
-    operationsKicker: 'Soporte que sale de la oficina', operationsTitleA: 'Movemos personas.', operationsTitleB: 'También movemos operaciones.',
-    operationsText: 'Para proyectos seleccionados ofrecemos transporte coordinado, equipo de patio y soluciones que ayudan a proteger el flujo de trabajo.',
-    operationsPoints: ['Transporte sujeto a proyecto y ubicación', 'Yard spotter trucks y montacargas', 'Atención directa desde Laredo'],
-    safetyLabel: 'Seguridad + coordinación', yardLabel: 'Equipo + continuidad',
+    transportKicker: 'Transporte para colaboradores',
+    transportTitle: 'Llegar al trabajo también debe ser sencillo.',
+    transportAccent: 'Rutas coordinadas para que el turno empiece a tiempo.',
+    transportText: 'Brindamos transporte seguro y confiable para colaboradores en proyectos y ubicaciones seleccionadas.',
+    transportPoints: ['Recolección desde puntos estratégicos', 'Viajes seguros y puntuales', 'Coordinación según proyecto y turno'],
+    transportAreas: 'Áreas disponibles', transportRoutes: 'Killam · Minas · Milla 13', transportCta: 'Preguntar por transporte',
+    transportMainLabel: 'Transporte seguro', transportArrivalLabel: 'Llegadas coordinadas',
     processKicker: 'Nuestro proceso', processTitle: 'Entender primero. Conectar mejor.',
     process: [
       ['01', 'Conocemos', 'La operación, el ambiente, el turno y lo que hace exitosa a la posición.'],
@@ -58,8 +71,12 @@ const content = {
     rolesTitle: 'También conectamos talento para',
     roles: ['Warehouse Associates', 'Forklift Operators', 'Traffic Clerks', 'Administrative Assistants', 'Customer Service', 'Supervisors', 'Safety Coordinators', 'Accounting Personnel'],
     differenceKicker: 'Por qué Multiservices', differenceTitle: 'Cerca de la operación. Cerca de las personas.',
-    differenceText: 'Un equipo bilingüe, conocimiento local y comunicación constante para responder a temporadas, nuevos proyectos y cambios de producción.',
-    differences: [['Bilingüe por diseño', 'Comunicación clara para empresas y candidatos.'], ['Flexible por operación', 'Soluciones que se ajustan al turno, proyecto y urgencia.'], ['Presente después del inicio', 'Seguimiento para cuidar la integración y el resultado.']],
+    differenceText: 'Soluciones visibles y concretas para responder a temporadas, nuevos proyectos y cambios de producción.',
+    showcaseSlides: [
+      ['Etiquetado NOM-050', 'Etiquetado listo para cada producto.', 'Termosellado, adhesivo, cosido textil y plastiflecha con ejecución ordenada y seguimiento cercano.', 'Equipo aplicando y escaneando etiquetas en cajas dentro de un almacén'],
+      ['Cuadrillas por proyecto', 'Más manos cuando la operación lo exige.', 'Inventarios, sorteos de calidad, retrabajos, carga, descarga y limpieza de patios según el alcance del proyecto.', 'Cuadrilla operativa reunida para coordinar un proyecto logístico'],
+      ['Renta de mulas', 'Equipo que mantiene el patio en movimiento.', 'Yard spotter trucks disponibles para apoyar la continuidad mientras una unidad se encuentra en reparación.', 'Mula de patio acoplando un remolque frente a los andenes'],
+    ],
     faqKicker: 'Preguntas frecuentes', faqTitle: 'Información clara antes de comenzar.',
     faqs: [
       ['¿Qué tipos de contratación manejan?', 'Personal temporal, por proyecto, temp-to-hire y contratación directa, según la necesidad de cada empresa.'],
@@ -89,6 +106,9 @@ const content = {
     heroBadge: 'An extension of your team', heroBadgeSub: 'Staffing · Workforce · Operational support', liveLabel: 'Response from Laredo',
     signals: [['ES / EN', 'Bilingual team'], ['TEMP → HIRE', 'Flexible hiring'], ['LOCAL', 'Market knowledge']],
     metrics: [['06', 'integrated solutions'], ['04', 'steps with follow-up'], ['ES/EN', 'bilingual service'], ['LDO', 'local presence']],
+    purposeKicker: 'More than filling a role',
+    purposeTitle: 'Behind every efficient operation, there is a strong team.',
+    purposeAccent: 'We help you build it.',
     audienceKicker: 'Two paths. One promise.', audienceTitle: 'Make the next move easier.',
     employer: { label: 'For employers', title: 'Prepared people without losing momentum.', text: 'Tell us the role, shift, and urgency. We shape the response around your operation.', points: ['Temporary and project', 'Temp-to-hire', 'Direct placement'], cta: 'Request talent' },
     candidate: { label: 'For candidates', title: 'An opportunity that fits where you are going.', text: 'Explore operational, administrative, and leadership roles with bilingual support.', points: ['Simple application', 'Close follow-up', 'Local opportunities'], cta: 'View opportunities' },
@@ -109,10 +129,13 @@ const content = {
       ['05', 'Immigration support', 'Document preparation and process guidance through a clear, organized, personal experience.'],
       ['06', 'Corporate events', 'Planning, environments, installations, grand openings, and experiences for teams and businesses.'],
     ],
-    operationsKicker: 'Support that leaves the office', operationsTitleA: 'We move people.', operationsTitleB: 'We move operations, too.',
-    operationsText: 'Selected projects can include coordinated transportation, yard equipment, and practical solutions that protect workflow.',
-    operationsPoints: ['Transportation varies by project and location', 'Yard spotter trucks and forklifts', 'Direct support from Laredo'],
-    safetyLabel: 'Safety + coordination', yardLabel: 'Equipment + continuity',
+    transportKicker: 'Employee transportation',
+    transportTitle: 'Getting to work should be simple, too.',
+    transportAccent: 'Coordinated routes that help every shift start on time.',
+    transportText: 'We provide safe, reliable transportation for employees on selected projects and service areas.',
+    transportPoints: ['Pickup from strategic locations', 'Safe and punctual trips', 'Coordination by project and shift'],
+    transportAreas: 'Available areas', transportRoutes: 'Killam · Minas · Mile 13', transportCta: 'Ask about transportation',
+    transportMainLabel: 'Safe transportation', transportArrivalLabel: 'Coordinated arrivals',
     processKicker: 'Our process', processTitle: 'Understand first. Connect better.',
     process: [['01', 'Discover', 'The operation, environment, shift, and what makes the role successful.'], ['02', 'Recruit', 'We source and evaluate people with intention, not just availability.'], ['03', 'Connect', 'We introduce prepared talent with clear expectations.'], ['04', 'Support', 'We follow up after day one to protect the relationship and result.']],
     jobKicker: 'Featured opening · August 2026', jobTitle: 'Team Lead', jobPay: '$17', jobPayUnit: 'per hour · based on experience',
@@ -120,8 +143,12 @@ const content = {
     jobTags: ['Leadership', 'Operations', 'Laredo, TX'], jobCta: 'Apply for this role', rolesTitle: 'We also connect talent for',
     roles: ['Warehouse Associates', 'Forklift Operators', 'Traffic Clerks', 'Administrative Assistants', 'Customer Service', 'Supervisors', 'Safety Coordinators', 'Accounting Personnel'],
     differenceKicker: 'Why Multiservices', differenceTitle: 'Close to the operation. Close to the people.',
-    differenceText: 'A bilingual team, local knowledge, and constant communication to respond to seasons, new projects, and production changes.',
-    differences: [['Bilingual by design', 'Clear communication for employers and candidates.'], ['Flexible by operation', 'Solutions shaped around the shift, project, and urgency.'], ['Present after day one', 'Follow-up that supports integration and results.']],
+    differenceText: 'Visible, practical solutions for seasons, new projects, and production changes.',
+    showcaseSlides: [
+      ['NOM-050 labeling', 'Labeling prepared for every product.', 'Heat seal, adhesive, sewn labels, and tag fasteners delivered through an organized process with close follow-up.', 'Team applying and scanning labels on boxes inside a warehouse'],
+      ['Project crews', 'More hands when the operation demands it.', 'Inventory, quality sorting, rework, loading, unloading, and yard cleanup shaped around the project scope.', 'Operations crew meeting to coordinate a logistics project'],
+      ['Yard truck rental', 'Equipment that keeps the yard moving.', 'Yard spotter trucks available to protect continuity while a unit is being repaired.', 'Yard spotter truck coupling a trailer in front of loading docks'],
+    ],
     faqKicker: 'Frequently asked questions', faqTitle: 'Clear information before you begin.',
     faqs: [
       ['What types of hiring do you offer?', 'Temporary, project-based, temp-to-hire, and direct placement, depending on each employer’s needs.'],
@@ -168,6 +195,8 @@ export default function Home() {
   const [lang, setLang] = useState<Language>('es');
   const [audience, setAudience] = useState<Audience>('candidate');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [serviceSlide, setServiceSlide] = useState(0);
+  const [carouselPaused, setCarouselPaused] = useState(false);
   const [contactLinks, setContactLinks] = useState<{ email: string; whatsapp: string } | null>(null);
   const successHeadingRef = useRef<HTMLHeadingElement>(null);
   const t = content[lang];
@@ -186,6 +215,12 @@ export default function Home() {
       window.removeEventListener('keydown', closeOnEscape);
     };
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (carouselPaused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => setServiceSlide((current) => (current + 1) % showcaseImages.length), 6500);
+    return () => window.clearInterval(timer);
+  }, [carouselPaused]);
 
   useEffect(() => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -209,6 +244,9 @@ export default function Home() {
     setContactLinks(null);
     setMenuOpen(false);
   };
+
+  const showPreviousService = () => setServiceSlide((current) => (current - 1 + showcaseImages.length) % showcaseImages.length);
+  const showNextService = () => setServiceSlide((current) => (current + 1) % showcaseImages.length);
 
   const prepareContact = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -239,7 +277,7 @@ export default function Home() {
 
       <header className="nav-shell">
         <a className="brand-lockup" href="#top" aria-label="Multiservices Laredo home" onClick={() => setMenuOpen(false)}>
-          <img src="/logo-optimized.webp" width="54" height="55" alt="" /><span>MULTISERVICES<small>LAREDO</small></span>
+          <img src="/logo-optimized.webp" width="72" height="73" alt="" /><span>MULTISERVICES<small>LAREDO</small></span>
         </a>
         <nav aria-label={lang === 'es' ? 'Navegación principal' : 'Main navigation'}>
           {navLinks.map(([href, label]) => <a href={href} key={href}>{label}</a>)}
@@ -287,18 +325,9 @@ export default function Home() {
           {t.metrics.map(([value, label], index) => <div data-reveal="up" style={{ '--delay': `${index * 70}ms` } as CSSProperties} key={value}><strong>{value}</strong><span>{label}</span></div>)}
         </section>
 
-        <section className="audience-section page-width" id="caminos">
-          <div className="section-heading" data-reveal="up"><div><p className="eyebrow"><span />{t.audienceKicker}</p><h2>{t.audienceTitle}</h2></div><p>01 / START</p></div>
-          <div className="audience-grid">
-            <article className="audience-card employer-card" data-reveal="left">
-              <div className="audience-employer-panel" aria-hidden="true"><small>WORKFORCE</small><strong>{lang === 'es' ? 'PERSONAS' : 'PEOPLE'}</strong><span>+</span><strong>{lang === 'es' ? 'OPERACIÓN' : 'OPERATIONS'}</strong><i>ES / EN · LAREDO</i></div>
-              <div className="audience-card-body"><p><span>01</span>{t.employer.label}</p><h3>{t.employer.title}</h3><div className="audience-copy"><p>{t.employer.text}</p><ul>{t.employer.points.map((point) => <li key={point}>{point}</li>)}</ul></div><a href="#contacto" onClick={() => chooseAudience('employer')}>{t.employer.cta}<span>↗</span></a></div>
-            </article>
-            <article className="audience-card candidate-card" data-reveal="right">
-              <div className="audience-photo"><ResponsivePhoto name="ms-recruiter" portrait sizes="(max-width: 780px) calc(100vw - 32px), 360px" alt={lang === 'es' ? 'Reclutadora bilingüe atendiendo a un candidato en una oficina contemporánea' : 'Bilingual recruiter meeting a candidate in a contemporary office'} /></div>
-              <div className="audience-card-body"><p><span>02</span>{t.candidate.label}</p><h3>{t.candidate.title}</h3><div className="audience-copy"><p>{t.candidate.text}</p><ul>{t.candidate.points.map((point) => <li key={point}>{point}</li>)}</ul></div><a href="#contacto" onClick={() => chooseAudience('candidate')}>{t.candidate.cta}<span>↗</span></a></div>
-            </article>
-          </div>
+        <section className="purpose-section page-width" data-reveal="up">
+          <p className="eyebrow"><span />{t.purposeKicker}</p>
+          <h2>{t.purposeTitle}<em>{t.purposeAccent}</em></h2>
         </section>
 
         <section className="industries-section" id="industrias">
@@ -320,12 +349,13 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="operations-section page-width">
-          <div className="operations-gallery" data-reveal="left">
-            <figure className="safety-photo"><ResponsivePhoto name="ms-safety" sizes="(max-width: 780px) calc(100vw - 32px), 24vw" alt={lang === 'es' ? 'Cuadrilla reunida para una charla de seguridad en un centro logístico' : 'Crew gathered for a safety talk in a logistics center'} /><figcaption>{t.safetyLabel}</figcaption></figure>
-            <figure className="yard-photo"><ResponsivePhoto name="ms-yard" sizes="(max-width: 780px) calc(100vw - 32px), 24vw" alt={lang === 'es' ? 'Operador de montacargas y camión de patio trabajando de forma segura' : 'Forklift operator and yard truck working safely'} /><figcaption>{t.yardLabel}</figcaption></figure>
+        <section className="transport-section page-width" id="transporte">
+          <div className="transport-gallery" data-reveal="left">
+            <figure className="transport-main-photo"><ResponsivePhoto name="transport-main" sizes="(max-width: 780px) calc(100vw - 32px), 52vw" alt={lang === 'es' ? 'Colaboradores abordando una van de transporte frente a un centro logístico' : 'Employees boarding a shuttle van outside a logistics center'} /><figcaption>01 / {t.transportMainLabel}</figcaption></figure>
+            <figure className="transport-arrival-photo"><ResponsivePhoto name="transport-arrival" sizes="(max-width: 780px) calc(100vw - 64px), 26vw" alt={lang === 'es' ? 'Van de transporte llegando puntualmente con colaboradores a un centro logístico' : 'Employee shuttle arriving on time at a logistics center'} /><figcaption>02 / {t.transportArrivalLabel}</figcaption></figure>
+            <div className="transport-routes"><small>{t.transportAreas}</small><strong>{t.transportRoutes}</strong></div>
           </div>
-          <div className="operations-copy" data-reveal="right"><p className="eyebrow"><span />{t.operationsKicker}</p><h2>{t.operationsTitleA}<em>{t.operationsTitleB}</em></h2><p>{t.operationsText}</p><ul>{t.operationsPoints.map((point) => <li key={point}>{point}</li>)}</ul><a href="#contacto" className="secondary-button" onClick={() => chooseAudience('employer')}>{t.employerCta}<span>↗</span></a></div>
+          <div className="transport-copy" data-reveal="right"><p className="eyebrow"><span />{t.transportKicker}</p><h2>{t.transportTitle}</h2><p className="transport-accent">{t.transportAccent}</p><p>{t.transportText}</p><ul>{t.transportPoints.map((point) => <li key={point}>{point}</li>)}</ul><a href="#contacto" className="secondary-button" onClick={() => chooseAudience('candidate')}>{t.transportCta}<span>↗</span></a></div>
         </section>
 
         <section className="process-section" id="proceso">
@@ -346,7 +376,13 @@ export default function Home() {
 
         <section className="difference-section page-width">
           <div className="difference-title" data-reveal="left"><p className="eyebrow"><span />{t.differenceKicker}</p><h2>{t.differenceTitle}</h2><p>{t.differenceText}</p></div>
-          <div className="difference-list">{t.differences.map(([title, text], index) => <article key={title} data-reveal="right" style={{ '--delay': `${index * 80}ms` } as CSSProperties}><span>0{index + 1}</span><div><h3>{title}</h3><p>{text}</p></div></article>)}</div>
+          <div className="showcase-carousel" role="region" aria-roledescription="carousel" aria-label={lang === 'es' ? 'Servicios de Multiservices Laredo' : 'Multiservices Laredo services'} data-reveal="right" onMouseEnter={() => setCarouselPaused(true)} onMouseLeave={() => setCarouselPaused(false)} onFocusCapture={() => setCarouselPaused(true)} onBlurCapture={() => setCarouselPaused(false)}>
+            <div className="showcase-photo"><ResponsivePhoto key={showcaseImages[serviceSlide]} name={showcaseImages[serviceSlide]} sizes="(max-width: 820px) calc(100vw - 40px), 50vw" alt={t.showcaseSlides[serviceSlide][3]} /><span>{String(serviceSlide + 1).padStart(2, '0')} / {String(showcaseImages.length).padStart(2, '0')}</span></div>
+            <div className="showcase-caption">
+              <p>{t.showcaseSlides[serviceSlide][0]}</p><h3>{t.showcaseSlides[serviceSlide][1]}</h3><div><p>{t.showcaseSlides[serviceSlide][2]}</p><div className="carousel-controls"><button type="button" onClick={showPreviousService} aria-label={lang === 'es' ? 'Servicio anterior' : 'Previous service'}>←</button><button type="button" onClick={showNextService} aria-label={lang === 'es' ? 'Siguiente servicio' : 'Next service'}>→</button></div></div>
+            </div>
+            <div className="carousel-dots" role="group" aria-label={lang === 'es' ? 'Elegir servicio' : 'Choose service'}>{t.showcaseSlides.map(([label], index) => <button type="button" key={label} className={serviceSlide === index ? 'active' : ''} aria-label={label} aria-pressed={serviceSlide === index} onClick={() => setServiceSlide(index)}><span /></button>)}</div>
+          </div>
         </section>
 
         <section className="faq-section" id="preguntas">
