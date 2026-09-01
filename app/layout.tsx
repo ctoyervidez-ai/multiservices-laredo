@@ -3,22 +3,22 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://ethrovsdraft.com"),
-  title: "Multiservices Laredo | Staffing & Recruitment",
+  title: "Multiservices Laredo | Más que empleos",
   description:
-    "Staffing, recruitment, online job applications and operational support for companies and candidates in Laredo, Texas.",
+    "Staffing bilingüe, reclutamiento, transporte y soporte operativo para empresas y candidatos en Laredo, Texas.",
   openGraph: {
-    title: "Multiservices Laredo | Staffing & Recruitment",
+    title: "Multiservices Laredo | Más que empleos",
     description:
-      "Bilingual staffing, recruiting and online job applications for companies and candidates in Laredo.",
+      "Creamos oportunidades y conectamos operaciones con talento preparado en Laredo, Texas.",
     type: "website",
     locale: "es_US",
     alternateLocale: "en_US",
   },
   twitter: {
     card: "summary",
-    title: "Multiservices Laredo | Staffing & Recruitment",
+    title: "Multiservices Laredo | Más que empleos",
     description:
-      "Bilingual staffing, recruiting and online job applications for companies and candidates in Laredo.",
+      "Staffing bilingüe, reclutamiento, transporte y soporte operativo en Laredo.",
   },
   icons: {
     icon: "/images/multiservices-logo.png",
