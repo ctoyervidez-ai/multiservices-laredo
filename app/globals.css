@@ -209,9 +209,14 @@ section[id] { scroll-margin-top:92px; }
 .pay-card strong { font-size:clamp(132px,14vw,220px); line-height:.72; letter-spacing:-.095em; }
 .pay-card span { font-size:11px; font-weight:850; letter-spacing:.1em; text-transform:uppercase; }
 .pay-card i { position:absolute; right:18px; bottom:17px; font-size:11px; font-style:normal; font-weight:900; }
-.role-cloud { grid-column:1/-1; display:flex; flex-wrap:wrap; margin-top:55px; border-top:1px solid #ffffff2b; }
-.role-cloud p { width:100%; margin:0; padding:18px 0; border-bottom:1px solid #ffffff2b; color:var(--gold-bright); font-size:10px; font-weight:900; letter-spacing:.14em; text-transform:uppercase; }
-.role-cloud span { flex:1 1 25%; min-height:50px; display:flex; align-items:center; padding:12px; border-bottom:1px solid #ffffff2b; color:#d4e0e8; font-size:12px; transition:background .3s ease,color .3s ease; }
+.role-cloud { grid-column:1/-1; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); margin-top:55px; border-top:1px solid #ffffff2b; border-inline:1px solid #ffffff1f; }
+.role-cloud-heading { grid-column:1/-1; display:flex; align-items:flex-end; justify-content:space-between; gap:36px; padding:20px 0; border-bottom:1px solid #ffffff2b; border-left:0; }
+.role-cloud-heading p { margin:0; padding-left:18px; color:var(--gold-bright); font-size:12px; font-weight:900; letter-spacing:.14em; text-transform:uppercase; }
+.role-cloud-heading>small { max-width:560px; padding-right:18px; color:#a9bbc8; font-size:11px; line-height:1.55; text-align:right; }
+.role-cloud span { min-height:66px; display:grid; grid-template-columns:28px 1fr; align-items:center; gap:8px; padding:12px 14px; border-right:1px solid #ffffff1f; border-bottom:1px solid #ffffff2b; color:#d4e0e8; font-size:12px; transition:background .3s ease,color .3s ease; }
+.role-cloud span:nth-of-type(4n) { border-right:0; }
+.role-cloud span small { color:var(--gold); font-size:9px; font-weight:900; letter-spacing:.1em; }
+.role-cloud span b { font-weight:650; line-height:1.35; }
 .role-cloud span:hover { background:#ffffff0b; color:white; }
 
 .difference-section { display:grid; grid-template-columns:.78fr 1.22fr; gap:7vw; align-items:center; padding:145px 0; }
@@ -331,8 +336,9 @@ footer { padding-top:95px; background:linear-gradient(180deg,#011325,#000b15); c
   .process-grid { grid-template-columns:1fr 1fr; }
   .job-grid { grid-template-columns:1fr; }
   .pay-card { min-height:340px; }
-  .role-cloud { grid-column:auto; }
-  .role-cloud span { flex-basis:50%; }
+  .role-cloud { grid-column:auto; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .role-cloud span:nth-of-type(4n) { border-right:1px solid #ffffff1f; }
+  .role-cloud span:nth-of-type(2n) { border-right:0; }
   .difference-section,.faq-grid { grid-template-columns:1fr; gap:65px; }
   .faq-grid>div:first-child { position:static; }
 }
@@ -411,7 +417,10 @@ footer { padding-top:95px; background:linear-gradient(180deg,#011325,#000b15); c
   .pay-card { min-height:290px; }
   .pay-card strong { font-size:150px; }
   .role-cloud { margin-top:30px; }
-  .role-cloud span { flex-basis:100%; }
+  .role-cloud-heading { align-items:flex-start; flex-direction:column; gap:9px; padding:18px; }
+  .role-cloud-heading p { padding-left:0; }
+  .role-cloud-heading>small { padding-right:0; text-align:left; }
+  .role-cloud span { min-height:74px; grid-template-columns:24px 1fr; padding:12px 10px; font-size:11px; }
   .difference-section { padding:100px 0; gap:50px; }
   .difference-title h2 { font-size:48px; }
   .showcase-photo { height:285px; }

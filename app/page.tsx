@@ -65,11 +65,12 @@ const content = {
       ['03', 'Conectamos', 'Presentamos talento preparado para incorporarse con expectativas claras.'],
       ['04', 'Acompañamos', 'Damos seguimiento después del inicio para cuidar la relación y el resultado.'],
     ],
-    jobKicker: 'Vacante destacada · Agosto 2026', jobTitle: 'Team Lead', jobPay: '$17', jobPayUnit: 'por hora · según experiencia',
+    jobKicker: 'Vacante destacada · Consulta disponibilidad', jobTitle: 'Team Lead', jobPay: '$17', jobPayUnit: 'por hora · según experiencia',
     jobText: 'Buscamos liderazgo práctico, enfoque operativo y ganas de crecer junto a un equipo en movimiento.',
     jobTags: ['Liderazgo', 'Operaciones', 'Laredo, TX'], jobCta: 'Aplicar a esta vacante',
-    rolesTitle: 'También conectamos talento para',
-    roles: ['Warehouse Associates', 'Forklift Operators', 'Traffic Clerks', 'Administrative Assistants', 'Customer Service', 'Supervisors', 'Safety Coordinators', 'Accounting Personnel'],
+    rolesTitle: 'Vacantes posibles',
+    rolesNote: 'Las posiciones y proyectos cambian según disponibilidad. Contáctanos para confirmar las vacantes actuales.',
+    roles: ['Labor general', 'Revisión / control de calidad', 'Guardia de caseta', 'Mulero / operador de patio', 'Ejecutivo de tráfico', 'CSR / servicio al cliente', 'Meseros', 'Cocineros', 'Team Lead', 'Proyectos fuera de la ciudad', 'Data Entry', 'Montacarguistas', 'Auditor de bodega', 'Plancheros', 'Asociados de almacén', 'Clerks de tráfico', 'Asistentes administrativos', 'Supervisores', 'Coordinadores de seguridad', 'Personal de contabilidad'],
     differenceKicker: 'Por qué Multiservices', differenceTitle: 'Cerca de la operación. Cerca de las personas.',
     differenceText: 'Soluciones visibles y concretas para responder a temporadas, nuevos proyectos y cambios de producción.',
     showcaseSlides: [
@@ -138,10 +139,11 @@ const content = {
     transportMainLabel: 'Safe transportation', transportArrivalLabel: 'Coordinated arrivals',
     processKicker: 'Our process', processTitle: 'Understand first. Connect better.',
     process: [['01', 'Discover', 'The operation, environment, shift, and what makes the role successful.'], ['02', 'Recruit', 'We source and evaluate people with intention, not just availability.'], ['03', 'Connect', 'We introduce prepared talent with clear expectations.'], ['04', 'Support', 'We follow up after day one to protect the relationship and result.']],
-    jobKicker: 'Featured opening · August 2026', jobTitle: 'Team Lead', jobPay: '$17', jobPayUnit: 'per hour · based on experience',
+    jobKicker: 'Featured opening · Ask about availability', jobTitle: 'Team Lead', jobPay: '$17', jobPayUnit: 'per hour · based on experience',
     jobText: 'We are looking for practical leadership, an operational mindset, and the drive to grow with a team in motion.',
-    jobTags: ['Leadership', 'Operations', 'Laredo, TX'], jobCta: 'Apply for this role', rolesTitle: 'We also connect talent for',
-    roles: ['Warehouse Associates', 'Forklift Operators', 'Traffic Clerks', 'Administrative Assistants', 'Customer Service', 'Supervisors', 'Safety Coordinators', 'Accounting Personnel'],
+    jobTags: ['Leadership', 'Operations', 'Laredo, TX'], jobCta: 'Apply for this role', rolesTitle: 'Possible openings',
+    rolesNote: 'Positions and projects vary by availability. Contact us to confirm current openings.',
+    roles: ['General Labor', 'Quality Inspection', 'Gate Guard', 'Yard Mule Operator', 'Traffic Coordinator', 'CSR / Customer Service', 'Servers', 'Cooks', 'Team Lead', 'Out-of-town Projects', 'Data Entry', 'Forklift Operators', 'Warehouse Auditor', 'Griddle Cooks', 'Warehouse Associates', 'Traffic Clerks', 'Administrative Assistants', 'Supervisors', 'Safety Coordinators', 'Accounting Personnel'],
     differenceKicker: 'Why Multiservices', differenceTitle: 'Close to the operation. Close to the people.',
     differenceText: 'Visible, practical solutions for seasons, new projects, and production changes.',
     showcaseSlides: [
@@ -370,7 +372,7 @@ export default function Home() {
           <div className="page-width job-grid">
             <div className="job-copy" data-reveal="left"><p className="eyebrow gold"><span />{t.jobKicker}</p><h2>{t.jobTitle}</h2><p>{t.jobText}</p><div className="tag-row">{t.jobTags.map((tag) => <span key={tag}>{tag}</span>)}</div><a className="primary-button" href="#contacto" onClick={() => chooseAudience('candidate')}>{t.jobCta}<span>↗</span></a></div>
             <div className="pay-card" data-reveal="right"><small>{lang === 'es' ? 'Compensación' : 'Compensation'}</small><strong>{t.jobPay}</strong><span>{t.jobPayUnit}</span><i>/ HR</i></div>
-            <div className="role-cloud" data-reveal="up"><p>{t.rolesTitle}</p>{t.roles.map((role) => <span key={role}>{role}</span>)}</div>
+            <div className="role-cloud" data-reveal="up"><div className="role-cloud-heading"><p>{t.rolesTitle}</p><small>{t.rolesNote}</small></div>{t.roles.map((role, index) => <span key={role}><small>{String(index + 1).padStart(2, '0')}</small><b>{role}</b></span>)}</div>
           </div>
         </section>
 
