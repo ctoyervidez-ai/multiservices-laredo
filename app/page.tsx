@@ -88,7 +88,7 @@ const content = {
     formKicker: 'El siguiente movimiento empieza aquí', formTitle: 'Cuéntanos qué necesitas.',
     formIntro: 'Prepara tu solicitud en menos de dos minutos y continúa por correo o WhatsApp.',
     candidateTab: 'Busco empleo', employerTab: 'Busco personal',
-    name: 'Nombre completo', phone: 'Teléfono', email: 'Correo', role: 'Puesto de interés', company: 'Empresa', need: '¿Qué tipo de personal necesitas?', message: 'Mensaje adicional', submit: 'Preparar solicitud',
+    name: 'Nombre completo', phone: 'Teléfono', email: 'Correo', role: 'Puesto de interés', rolePrompt: 'Selecciona una vacante', roleOther: 'Otra posición', roleOtherLabel: 'Escribe la posición de interés', roleHelp: 'Elige una vacante posible o selecciona “Otra posición”.', company: 'Empresa', need: '¿Qué tipo de personal necesitas?', message: 'Mensaje adicional', submit: 'Preparar solicitud',
     candidateNote: 'Podrás adjuntar tu CV en el siguiente paso por correo o WhatsApp.', privacy: 'Nada se envía hasta que elijas correo o WhatsApp.',
     successTitle: 'Tu solicitud está preparada.', successText: 'Revisa tus datos y elige cómo deseas contactar al equipo de Multiservices.',
     emailCta: 'Continuar por correo', whatsappCta: 'Continuar por WhatsApp', editCta: 'Editar información',
@@ -159,7 +159,7 @@ const content = {
       ['What does an employer need to get started?', 'The role, shift, location, start date, number of people, and any safety or experience requirements.'],
     ],
     formKicker: 'Your next move starts here', formTitle: 'Tell us what you need.', formIntro: 'Prepare your request in under two minutes, then continue by email or WhatsApp.',
-    candidateTab: 'I need a job', employerTab: 'I need staff', name: 'Full name', phone: 'Phone', email: 'Email', role: 'Role of interest', company: 'Company', need: 'What kind of staff do you need?', message: 'Additional message', submit: 'Prepare request',
+    candidateTab: 'I need a job', employerTab: 'I need staff', name: 'Full name', phone: 'Phone', email: 'Email', role: 'Role of interest', rolePrompt: 'Select an opening', roleOther: 'Another position', roleOtherLabel: 'Enter the role you are interested in', roleHelp: 'Choose a possible opening or select “Another position”.', company: 'Company', need: 'What kind of staff do you need?', message: 'Additional message', submit: 'Prepare request',
     candidateNote: 'You can attach your résumé in the next step by email or WhatsApp.', privacy: 'Nothing is sent until you choose email or WhatsApp.',
     successTitle: 'Your request is ready.', successText: 'Review your information and choose how you want to contact the Multiservices team.',
     emailCta: 'Continue by email', whatsappCta: 'Continue on WhatsApp', editCta: 'Edit information',
@@ -199,6 +199,7 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [serviceSlide, setServiceSlide] = useState(0);
   const [carouselPaused, setCarouselPaused] = useState(false);
+  const [roleChoice, setRoleChoice] = useState('');
   const [contactLinks, setContactLinks] = useState<{ email: string; whatsapp: string } | null>(null);
   const successHeadingRef = useRef<HTMLHeadingElement>(null);
   const t = content[lang];
@@ -245,6 +246,11 @@ export default function Home() {
     setAudience(next);
     setContactLinks(null);
     setMenuOpen(false);
+  };
+
+  const selectRole = (index: number) => {
+    if (index >= 0) setRoleChoice(String(index));
+    chooseAudience('candidate');
   };
 
   const showPreviousService = () => setServiceSlide((current) => (current - 1 + showcaseImages.length) % showcaseImages.length);
@@ -370,9 +376,9 @@ export default function Home() {
 
         <section className="jobs-section" id="vacantes">
           <div className="page-width job-grid">
-            <div className="job-copy" data-reveal="left"><p className="eyebrow gold"><span />{t.jobKicker}</p><h2>{t.jobTitle}</h2><p>{t.jobText}</p><div className="tag-row">{t.jobTags.map((tag) => <span key={tag}>{tag}</span>)}</div><a className="primary-button" href="#contacto" onClick={() => chooseAudience('candidate')}>{t.jobCta}<span>↗</span></a></div>
+            <div className="job-copy" data-reveal="left"><p className="eyebrow gold"><span />{t.jobKicker}</p><h2>{t.jobTitle}</h2><p>{t.jobText}</p><div className="tag-row">{t.jobTags.map((tag) => <span key={tag}>{tag}</span>)}</div><a className="primary-button" href="#application-form" onClick={() => selectRole(t.roles.findIndex((role) => role === 'Team Lead'))}>{t.jobCta}<span>↗</span></a></div>
             <div className="pay-card" data-reveal="right"><small>{lang === 'es' ? 'Compensación' : 'Compensation'}</small><strong>{t.jobPay}</strong><span>{t.jobPayUnit}</span><i>/ HR</i></div>
-            <div className="role-cloud" data-reveal="up"><div className="role-cloud-heading"><p>{t.rolesTitle}</p><small>{t.rolesNote}</small></div>{t.roles.map((role, index) => <span key={role}><small>{String(index + 1).padStart(2, '0')}</small><b>{role}</b></span>)}</div>
+            <div className="role-cloud" data-reveal="up"><div className="role-cloud-heading"><p>{t.rolesTitle}</p><small>{t.rolesNote}</small></div>{t.roles.map((role, index) => <a className={`role-option ${roleChoice === String(index) ? 'selected' : ''}`} href="#application-form" key={role} aria-label={`${lang === 'es' ? 'Aplicar a' : 'Apply for'} ${role}`} aria-current={roleChoice === String(index) ? 'true' : undefined} onClick={() => selectRole(index)}><small>{String(index + 1).padStart(2, '0')}</small><b>{role}</b></a>)}</div>
           </div>
         </section>
 
@@ -397,12 +403,12 @@ export default function Home() {
         <section className="contact-section" id="contacto">
           <div className="page-width contact-grid">
             <div className="contact-intro" data-reveal="left"><p className="eyebrow gold"><span />{t.formKicker}</p><h2>{t.formTitle}</h2><p>{t.formIntro}</p><div className="direct-links"><a href="tel:+19564411292"><small>PHONE</small><b>+1 956 441 1292</b><span>↗</span></a><a href="https://wa.me/19566069956" target="_blank" rel="noreferrer"><small>WHATSAPP</small><b>+1 956 606 9956</b><span>↗</span></a><a href="mailto:operations@multiservicesldo.com"><small>EMAIL</small><b>operations@multiservicesldo.com</b><span>↗</span></a></div></div>
-            <div className="form-shell" data-reveal="right">
+            <div className="form-shell" data-reveal="right" id="application-form">
               <div className="form-tabs" role="group" aria-label={lang === 'es' ? 'Tipo de solicitud' : 'Request type'}><button type="button" aria-pressed={audience === 'candidate'} className={audience === 'candidate' ? 'active' : ''} onClick={() => chooseAudience('candidate')}>{t.candidateTab}</button><button type="button" aria-pressed={audience === 'employer'} className={audience === 'employer' ? 'active' : ''} onClick={() => chooseAudience('employer')}>{t.employerTab}</button></div>
               {contactLinks ? <div className="form-success" role="status"><span>✓</span><h3 ref={successHeadingRef} tabIndex={-1}>{t.successTitle}</h3><p>{t.successText}</p><div><a className="primary-button" href={contactLinks.email}>{t.emailCta}<span>↗</span></a><a className="secondary-button light" href={contactLinks.whatsapp} target="_blank" rel="noreferrer">{t.whatsappCta}<span>↗</span></a></div><button type="button" onClick={() => setContactLinks(null)}>{t.editCta}</button></div> : <form onSubmit={prepareContact}>
                 <div className="field-pair"><label>{t.name}<input name="name" required autoComplete="name" /></label><label>{t.phone}<input name="phone" required type="tel" autoComplete="tel" /></label></div>
                 <label>{t.email}<input name="email" required type="email" autoComplete="email" /></label>
-                {audience === 'candidate' ? <label>{t.role}<input name="role" required /></label> : <><label>{t.company}<input name="company" required autoComplete="organization" /></label><label>{t.need}<textarea name="need" rows={4} required /></label></>}
+                {audience === 'candidate' ? <><label>{t.role}<select value={roleChoice} required onChange={(event) => setRoleChoice(event.target.value)}><option value="" disabled>{t.rolePrompt}</option>{t.roles.map((role, index) => <option value={String(index)} key={role}>{role}</option>)}<option value="other">{t.roleOther}</option></select></label>{roleChoice === 'other' ? <label>{t.roleOtherLabel}<input name="role" required /></label> : <input type="hidden" name="role" value={roleChoice ? t.roles[Number(roleChoice)] : ''} />}<small className="role-choice-note">{t.roleHelp}</small></> : <><label>{t.company}<input name="company" required autoComplete="organization" /></label><label>{t.need}<textarea name="need" rows={4} required /></label></>}
                 <label>{t.message}<textarea name="message" rows={3} /></label>
                 {audience === 'candidate' && <small className="candidate-note">{t.candidateNote}</small>}
                 <button className="primary-button form-submit" type="submit">{t.submit}<span>↗</span></button><small className="privacy-note">{t.privacy}</small>
