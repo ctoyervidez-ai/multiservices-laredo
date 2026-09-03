@@ -2,6 +2,8 @@ import { env } from 'cloudflare:workers';
 import { drizzle } from 'drizzle-orm/d1';
 import * as schema from './schema';
 import { schemaStatements } from './schema-sql';
+import { applyContactEmailUpdate } from './contact-email-update';
+import { DEFAULT_CONTACT_EMAIL } from '@/lib/site-contact';
 
 export const DEFAULT_TENANT_ID = 'multiservices-laredo';
 
@@ -85,6 +87,9 @@ async function initializeDatabase() {
   const database = getD1();
   await database.batch(schemaStatements.map((statement) => database.prepare(statement)));
   await seedSiteTenant(database);
+  if (getSiteTenantId() === DEFAULT_TENANT_ID) {
+    await applyContactEmailUpdate(database, DEFAULT_TENANT_ID, DEFAULT_CONTACT_EMAIL, new Date().toISOString());
+  }
 }
 
 async function seedSiteTenant(database: D1Database) {
@@ -105,7 +110,7 @@ async function seedSiteTenant(database: D1Database) {
         'Conectamos empresas exigentes con personas listas para integrarse, aportar y mantener cada turno en movimiento.',
         'The right people.', 'Right when', 'the operation needs them.',
         'We connect demanding businesses with people ready to contribute, integrate, and keep every shift moving.',
-        '+1 956 441 1292', '19566069956', 'operations@multiservicesldo.com', now,
+        '+1 956 441 1292', '19566069956', DEFAULT_CONTACT_EMAIL, now,
       ),
   ]);
 

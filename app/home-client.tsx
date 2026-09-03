@@ -1,8 +1,9 @@
 'use client';
 
-import { FormEvent, type CSSProperties, useEffect, useRef, useState } from 'react';
+import { FormEvent, type CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { PublicJob, SiteSettings } from '@/lib/portal-types';
+import { DEFAULT_CONTACT_EMAIL } from '@/lib/site-contact';
 
 type Language = 'es' | 'en';
 type Audience = 'candidate' | 'employer';
@@ -190,7 +191,7 @@ const localBusinessSchema = {
   name: 'Multiservices Laredo',
   url: 'https://www.ethrovsdraft.com',
   telephone: '+1-956-441-1292',
-  email: 'operations@multiservicesldo.com',
+  email: DEFAULT_CONTACT_EMAIL,
   address: { '@type': 'PostalAddress', streetAddress: '1316 Zaragoza St.', addressLocality: 'Laredo', addressRegion: 'TX', postalCode: '78040', addressCountry: 'US' },
   areaServed: 'Laredo, Texas',
   sameAs: ['https://www.instagram.com/multiservicesldo'],
@@ -220,11 +221,15 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
     if (!menuOpen) return;
     const previousOverflow = document.body.style.overflow;
     const closeOnEscape = (event: KeyboardEvent) => event.key === 'Escape' && setMenuOpen(false);
+    const desktop = window.matchMedia('(min-width: 1121px)');
+    const closeOnDesktop = () => { if (desktop.matches) setMenuOpen(false); };
     document.body.style.overflow = 'hidden';
     window.addEventListener('keydown', closeOnEscape);
+    desktop.addEventListener('change', closeOnDesktop);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', closeOnEscape);
+      desktop.removeEventListener('change', closeOnDesktop);
     };
   }, [menuOpen]);
 
@@ -251,14 +256,14 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
     };
   }, []);
 
-  const chooseAudience = (next: Audience) => {
+  const chooseAudience = useCallback((next: Audience) => {
     setAudience(next);
     setContactLinks(null);
     setSubmissionError('');
     submissionStartedAt.current = Date.now();
     submissionKey.current = '';
     setMenuOpen(false);
-  };
+  }, []);
 
   const selectRole = (index: number) => {
     if (index >= 0) setRoleChoice(String(index));
@@ -294,7 +299,7 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
     const lines = [`${t.name}: ${get('name')}`, `${t.phone}: ${get('phone')}`, `${t.email}: ${get('email')}`, `${t.company}: ${get('company')}`, `${t.need}: ${get('need')}`, `${t.message}: ${get('message') || '—'}`];
     const body = lines.join('\n');
     setContactLinks({
-      email: `mailto:${siteSettings?.contactEmail || 'operations@multiservicesldo.com'}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+      email: `mailto:${siteSettings?.contactEmail || DEFAULT_CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
       whatsapp: `https://wa.me/${siteSettings?.contactWhatsapp || '19566069956'}?text=${encodeURIComponent(`${subject}\n\n${body}`)}`,
     });
   };
@@ -310,7 +315,11 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
   const contactPhone = siteSettings?.contactPhone || '+1 956 441 1292';
   const phoneHref = `tel:${contactPhone.replace(/[^+\d]/g, '')}`;
   const contactWhatsapp = siteSettings?.contactWhatsapp || '19566069956';
-  const contactEmail = siteSettings?.contactEmail || 'operations@multiservicesldo.com';
+  const contactEmail = siteSettings?.contactEmail || DEFAULT_CONTACT_EMAIL;
+  const whatsappDisplay = contactWhatsapp.replace(/^(1)(\d{3})(\d{3})(\d{4})$/, '+$1 $2 $3 $4');
+  const transportInquiryHref = `https://wa.me/${contactWhatsapp}?text=${encodeURIComponent(lang === 'es'
+    ? 'Hola, quisiera información sobre el transporte para colaboradores: rutas, horarios y disponibilidad.'
+    : 'Hello, I would like information about employee transportation: routes, schedules, and availability.')}`;
   const featuredJob = liveJobs.find((job) => job.featured) || liveJobs[0];
 
   return (
@@ -324,23 +333,27 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
           <img src="/logo-optimized.webp" width="72" height="73" alt="" /><span>MULTISERVICES<small>LAREDO</small></span>
         </a>
         <nav aria-label={lang === 'es' ? 'Navegación principal' : 'Main navigation'}>
-          {navLinks.map(([href, label]) => <Link href={href} key={href}>{label}</Link>)}
+          {navLinks.map(([href, label]) => href.startsWith('#')
+            ? <a href={href} key={href}>{label}</a>
+            : <Link href={href} key={href}>{label}</Link>)}
         </nav>
         <div className="nav-actions">
           <div className="language-switch" role="group" aria-label="Language">
             <button type="button" aria-pressed={lang === 'es'} className={lang === 'es' ? 'active' : ''} onClick={() => setLang('es')}>ES</button><span>/</span>
             <button type="button" aria-pressed={lang === 'en'} className={lang === 'en' ? 'active' : ''} onClick={() => setLang('en')}>EN</button>
           </div>
-          <a className="primary-button nav-cta" href="#contacto">{t.start}<span>↗</span></a>
+          <a className="primary-button nav-cta" href="#application-form" onClick={() => chooseAudience(audience)}>{t.start}<span>↗</span></a>
           <button className="menu-toggle" type="button" aria-label={menuOpen ? t.close : t.menu} aria-expanded={menuOpen} aria-controls="mobile-menu" onClick={() => setMenuOpen((open) => !open)}><span>{menuOpen ? t.close : t.menu}</span><i aria-hidden="true" /></button>
         </div>
       </header>
 
       <div className={`mobile-menu ${menuOpen ? 'is-open' : ''}`} id="mobile-menu" aria-hidden={!menuOpen}>
         <nav aria-label={lang === 'es' ? 'Navegación móvil' : 'Mobile navigation'}>
-          {navLinks.map(([href, label], index) => <Link href={href} key={href} onClick={() => setMenuOpen(false)}><span>0{index + 1}</span>{label}<i>↗</i></Link>)}
+          {navLinks.map(([href, label], index) => href.startsWith('#')
+            ? <a href={href} key={href} onClick={() => setMenuOpen(false)}><span>0{index + 1}</span>{label}<i>↗</i></a>
+            : <Link href={href} key={href} onClick={() => setMenuOpen(false)}><span>0{index + 1}</span>{label}<i>↗</i></Link>)}
         </nav>
-        <div><Link href="/vacantes" className="primary-button">{t.candidateCta}<span>↗</span></Link><a href="#contacto" className="secondary-button light" onClick={() => chooseAudience('employer')}>{t.employerCta}<span>↗</span></a></div>
+        <div><Link href="/vacantes" className="primary-button" onClick={() => setMenuOpen(false)}>{t.candidateCta}<span>↗</span></Link><a href="#application-form" className="secondary-button light" onClick={() => chooseAudience('employer')}>{t.employerCta}<span>↗</span></a></div>
       </div>
 
       <div id="contenido">
@@ -350,7 +363,7 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
               <p className="eyebrow"><span />{t.heroKicker}</p>
               <h1><span>{heroLine1}</span><em>{heroAccent}</em><span>{heroLine2}</span></h1>
               <p className="hero-lead">{heroLead}</p>
-              <div className="hero-actions"><a className="primary-button" href="#contacto" onClick={() => chooseAudience('employer')}>{t.employerCta}<span>↗</span></a><Link className="secondary-button" href="/vacantes">{t.candidateCta}<span>↗</span></Link></div>
+              <div className="hero-actions"><a className="primary-button" href="#application-form" onClick={() => chooseAudience('employer')}>{t.employerCta}<span>↗</span></a><Link className="secondary-button" href="/vacantes">{t.candidateCta}<span>↗</span></Link></div>
               <div className="hero-signals">{t.signals.map(([value, label]) => <div key={value}><strong>{value}</strong><span>{label}</span></div>)}</div>
             </div>
             <div className="hero-visual" data-reveal="image">
@@ -389,7 +402,7 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
           <div className="page-width">
             <div className="section-heading inverted" data-reveal="up"><div><p className="eyebrow gold"><span />{t.servicesKicker}</p><h2>{t.servicesTitle}</h2></div><p>02 / SOLUTIONS</p></div>
             <div className="service-list">{t.services.map(([number, title, text], index) => <article key={number} data-reveal="up" style={{ '--delay': `${(index % 3) * 70}ms` } as CSSProperties}><span>{number}</span><h3>{title}</h3><p>{text}</p></article>)}</div>
-            <div className="section-cta" data-reveal="up"><p>{lang === 'es' ? '¿Tienes una necesidad fuera de esta lista?' : 'Have a need outside this list?'}</p><a href="#contacto" className="secondary-button light" onClick={() => chooseAudience('employer')}>{t.employerCta}<span>↗</span></a></div>
+            <div className="section-cta" data-reveal="up"><p>{lang === 'es' ? '¿Tienes una necesidad fuera de esta lista?' : 'Have a need outside this list?'}</p><a href="#application-form" className="secondary-button light" onClick={() => chooseAudience('employer')}>{t.employerCta}<span>↗</span></a></div>
           </div>
         </section>
 
@@ -399,7 +412,7 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
             <figure className="transport-arrival-photo"><ResponsivePhoto name="transport-arrival" sizes="(max-width: 780px) calc(100vw - 64px), 26vw" alt={lang === 'es' ? 'Van de transporte llegando puntualmente con colaboradores a un centro logístico' : 'Employee shuttle arriving on time at a logistics center'} /><figcaption>02 / {t.transportArrivalLabel}</figcaption></figure>
             <div className="transport-routes"><small>{t.transportAreas}</small><strong>{t.transportRoutes}</strong></div>
           </div>
-          <div className="transport-copy" data-reveal="right"><p className="eyebrow"><span />{t.transportKicker}</p><h2>{t.transportTitle}</h2><p className="transport-accent">{t.transportAccent}</p><p>{t.transportText}</p><ul>{t.transportPoints.map((point) => <li key={point}>{point}</li>)}</ul><a href="#contacto" className="secondary-button" onClick={() => chooseAudience('candidate')}>{t.transportCta}<span>↗</span></a></div>
+          <div className="transport-copy" data-reveal="right"><p className="eyebrow"><span />{t.transportKicker}</p><h2>{t.transportTitle}</h2><p className="transport-accent">{t.transportAccent}</p><p>{t.transportText}</p><ul>{t.transportPoints.map((point) => <li key={point}>{point}</li>)}</ul><a href={transportInquiryHref} className="secondary-button" target="_blank" rel="noreferrer">{t.transportCta}<span>↗</span></a></div>
         </section>
 
         <section className="process-section" id="proceso">
@@ -412,9 +425,25 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
 
         <section className="jobs-section" id="vacantes">
           <div className="page-width job-grid">
-            <div className="job-copy" data-reveal="left"><p className="eyebrow gold"><span />{t.jobKicker}</p><h2>{featuredJob ? (lang === 'es' ? featuredJob.titleEs : featuredJob.titleEn) : t.jobTitle}</h2><p>{featuredJob ? (lang === 'es' ? featuredJob.summaryEs : featuredJob.summaryEn) : t.jobText}</p><div className="tag-row">{featuredJob ? [featuredJob.location, featuredJob.shift, featuredJob.employmentType].map((tag) => <span key={tag}>{tag}</span>) : t.jobTags.map((tag) => <span key={tag}>{tag}</span>)}</div><Link className="primary-button" href={featuredJob ? `/vacantes/${featuredJob.slug}` : '#application-form'} onClick={() => { if (!featuredJob) selectRole(t.roles.findIndex((role) => role === 'Team Lead')); }}>{t.jobCta}<span>↗</span></Link></div>
-            <div className="pay-card" data-reveal="right"><small>{lang === 'es' ? 'Compensación' : 'Compensation'}</small><strong>{featuredJob?.payMin ? `$${featuredJob.payMin}` : t.jobPay}</strong><span>{featuredJob?.payMin ? `por ${featuredJob.payUnit}` : t.jobPayUnit}</span><i>/ HR</i></div>
-            <div className="role-cloud" data-reveal="up"><div className="role-cloud-heading"><p>{t.rolesTitle}</p><small>{t.rolesNote}</small></div>{t.roles.map((role, index) => <a className={`role-option ${roleChoice === String(index) ? 'selected' : ''}`} href="#application-form" key={role} aria-label={`${lang === 'es' ? 'Aplicar a' : 'Apply for'} ${role}`} aria-current={roleChoice === String(index) ? 'true' : undefined} onClick={() => selectRole(index)}><small>{String(index + 1).padStart(2, '0')}</small><b>{role}</b></a>)}</div>
+            <div className="job-copy" data-reveal="left">
+              <p className="eyebrow gold"><span />{featuredJob ? t.jobKicker : (lang === 'es' ? 'Oportunidades laborales' : 'Career opportunities')}</p>
+              <h2>{featuredJob ? (lang === 'es' ? featuredJob.titleEs : featuredJob.titleEn) : (lang === 'es' ? 'Comparte tu perfil.' : 'Share your profile.')}</h2>
+              <p>{featuredJob ? (lang === 'es' ? featuredJob.summaryEs : featuredJob.summaryEn) : (lang === 'es' ? 'Déjanos tus datos para que el equipo pueda considerarte cuando haya una oportunidad adecuada.' : 'Share your details so the team can consider you when a suitable opportunity becomes available.')}</p>
+              {featuredJob && <div className="tag-row">{[featuredJob.location, featuredJob.shift, featuredJob.employmentType].map((tag) => <span key={tag}>{tag}</span>)}</div>}
+              {featuredJob
+                ? <Link className="primary-button" href={`/vacantes/${featuredJob.slug}#aplicar`}>{t.jobCta}<span>↗</span></Link>
+                : <a className="primary-button" href="#application-form" onClick={() => chooseAudience('candidate')}>{lang === 'es' ? 'Enviar mi perfil' : 'Share my profile'}<span>↗</span></a>}
+            </div>
+            <div className="pay-card" data-reveal="right"><small>{lang === 'es' ? 'Compensación' : 'Compensation'}</small><strong>{featuredJob?.payMin != null ? `$${featuredJob.payMin}` : '—'}</strong><span>{featuredJob?.payMin != null ? `${lang === 'es' ? 'por' : 'per'} ${featuredJob.payUnit}` : (lang === 'es' ? 'Consulta disponibilidad y condiciones' : 'Ask about availability and conditions')}</span></div>
+            <div className="role-cloud" data-reveal="up">
+              <div className="role-cloud-heading"><p>{t.rolesTitle}</p><small>{t.rolesNote}</small></div>
+              {t.roles.map((role, index) => {
+                const matchingJob = liveJobs.find((job) => job.titleEs === content.es.roles[index] || job.titleEn === content.en.roles[index]);
+                return matchingJob
+                  ? <Link className="role-option" href={`/vacantes/${matchingJob.slug}#aplicar`} key={role} aria-label={`${lang === 'es' ? 'Aplicar a' : 'Apply for'} ${role}`}><small>{String(index + 1).padStart(2, '0')}</small><b>{role}</b></Link>
+                  : <a className={`role-option ${roleChoice === String(index) ? 'selected' : ''}`} href="#application-form" key={role} aria-label={`${lang === 'es' ? 'Registrar interés en' : 'Register interest in'} ${role}`} aria-current={roleChoice === String(index) ? 'true' : undefined} onClick={() => selectRole(index)}><small>{String(index + 1).padStart(2, '0')}</small><b>{role}</b></a>;
+              })}
+            </div>
           </div>
         </section>
 
@@ -438,7 +467,7 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
 
         <section className="contact-section" id="contacto">
           <div className="page-width contact-grid">
-            <div className="contact-intro" data-reveal="left"><p className="eyebrow gold"><span />{t.formKicker}</p><h2>{t.formTitle}</h2><p>{t.formIntro}</p><div className="direct-links"><a href={phoneHref}><small>PHONE</small><b>{contactPhone}</b><span>↗</span></a><a href={`https://wa.me/${contactWhatsapp}`} target="_blank" rel="noreferrer"><small>WHATSAPP</small><b>{contactPhone}</b><span>↗</span></a><a href={`mailto:${contactEmail}`}><small>EMAIL</small><b>{contactEmail}</b><span>↗</span></a></div></div>
+            <div className="contact-intro" data-reveal="left"><p className="eyebrow gold"><span />{t.formKicker}</p><h2>{t.formTitle}</h2><p>{t.formIntro}</p><div className="direct-links"><a href={phoneHref}><small>PHONE</small><b>{contactPhone}</b><span>↗</span></a><a href={`https://wa.me/${contactWhatsapp}`} target="_blank" rel="noreferrer"><small>WHATSAPP</small><b>{whatsappDisplay}</b><span>↗</span></a><a href={`mailto:${contactEmail}`}><small>EMAIL</small><b>{contactEmail}</b><span>↗</span></a></div></div>
             <div className="form-shell" data-reveal="right" id="application-form">
               <div className="form-tabs" role="group" aria-label={lang === 'es' ? 'Tipo de solicitud' : 'Request type'}><button type="button" aria-pressed={audience === 'candidate'} className={audience === 'candidate' ? 'active' : ''} onClick={() => chooseAudience('candidate')}>{t.candidateTab}</button><button type="button" aria-pressed={audience === 'employer'} className={audience === 'employer' ? 'active' : ''} onClick={() => chooseAudience('employer')}>{t.employerTab}</button></div>
               {contactLinks ? <div className="form-success" role="status"><span>✓</span><h3 ref={successHeadingRef} tabIndex={-1}>{contactLinks.reference ? (lang === 'es' ? 'Recibimos tu solicitud.' : 'We received your application.') : t.successTitle}</h3><p>{contactLinks.reference ? (lang === 'es' ? 'Tu información quedó guardada para que el equipo pueda revisarla y contactarte.' : 'Your information was saved so the team can review it and contact you.') : t.successText}</p>{contactLinks.reference ? <><strong className="application-reference">{lang === 'es' ? 'Folio' : 'Reference'}: {contactLinks.reference}</strong><div><Link className="primary-button" href="/vacantes">{lang === 'es' ? 'Ver vacantes' : 'View openings'}<span>↗</span></Link></div></> : <div><a className="primary-button" href={contactLinks.email}>{t.emailCta}<span>↗</span></a><a className="secondary-button light" href={contactLinks.whatsapp} target="_blank" rel="noreferrer">{t.whatsappCta}<span>↗</span></a></div>}<button type="button" onClick={() => { setContactLinks(null); submissionStartedAt.current = Date.now(); submissionKey.current = ''; }}>{t.editCta}</button></div> : <form onSubmit={prepareContact}>

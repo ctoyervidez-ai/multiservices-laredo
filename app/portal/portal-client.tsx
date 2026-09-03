@@ -168,7 +168,12 @@ export default function PortalClient({ initialSnapshot }: { initialSnapshot: Por
     }
   }
 
-  const go = (next: Section) => { setSection(next); setMobileMenu(false); setNotice(null); };
+  const go = (next: Section) => {
+    setSection(next);
+    setMobileMenu(false);
+    setNotice(null);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
 
   return <main className="portal-shell">
     <aside className={`portal-sidebar ${mobileMenu ? 'is-open' : ''}`}>

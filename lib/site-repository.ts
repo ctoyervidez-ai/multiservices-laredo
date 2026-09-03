@@ -1,6 +1,7 @@
 import { ensureDatabase, getD1, getSiteName, getSiteTenantId } from '@/db';
 import { can, isPortalRole, roleCapabilities } from '@/lib/portal-access';
 import type { PortalIdentity } from '@/lib/portal-auth';
+import { DEFAULT_CONTACT_EMAIL } from '@/lib/site-contact';
 import type { ApplicationRecord, JobRecord, MediaAsset, PortalRole, PortalSnapshot, PublicJob, SiteSettings } from '@/lib/portal-types';
 
 const JOB_COLUMNS = `
@@ -37,7 +38,7 @@ export const defaultSettings: SiteSettings = {
   heroLeadEn: 'We connect demanding businesses with people ready to contribute, integrate, and keep every shift moving.',
   contactPhone: '+1 956 441 1292',
   contactWhatsapp: '19566069956',
-  contactEmail: 'operations@multiservicesldo.com',
+  contactEmail: DEFAULT_CONTACT_EMAIL,
   heroMediaId: null,
   transportMediaId: null,
   operationsMediaId: null,
