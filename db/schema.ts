@@ -23,6 +23,58 @@ export const memberships = sqliteTable('memberships', {
   index('idx_memberships_user_id').on(table.userId),
 ]);
 
+export const portalUsers = sqliteTable('portal_users', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  email: text('email').notNull(),
+  displayName: text('display_name').notNull(),
+  passwordAlgorithm: text('password_algorithm').notNull(),
+  passwordIterations: integer('password_iterations').notNull(),
+  passwordSaltB64: text('password_salt_b64').notNull(),
+  passwordHashB64: text('password_hash_b64').notNull(),
+  pepperVersion: integer('pepper_version').notNull().default(1),
+  authVersion: integer('auth_version').notNull().default(1),
+  status: text('status').notNull().default('active'),
+  passwordChangedAt: text('password_changed_at').notNull(),
+  lastLoginAt: text('last_login_at'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, (table) => [
+  uniqueIndex('idx_portal_users_tenant_email').on(table.tenantId, table.email),
+  index('idx_portal_users_tenant_status').on(table.tenantId, table.status),
+]);
+
+export const authBootstrap = sqliteTable('auth_bootstrap', {
+  tenantId: text('tenant_id').primaryKey().references(() => tenants.id),
+  codeHashB64: text('code_hash_b64'),
+  codeKeyVersion: integer('code_key_version').notNull().default(1),
+  expiresAt: text('expires_at').notNull(),
+  usedAt: text('used_at'),
+  usedByUserId: text('used_by_user_id').references(() => portalUsers.id),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const authSessions = sqliteTable('auth_sessions', {
+  id: text('id').primaryKey(),
+  tokenHashB64: text('token_hash_b64').notNull().unique(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  userId: text('user_id').notNull().references(() => portalUsers.id),
+  authVersion: integer('auth_version').notNull(),
+  createdAt: text('created_at').notNull(),
+  lastSeenAt: text('last_seen_at').notNull(),
+  idleExpiresAt: text('idle_expires_at').notNull(),
+  absoluteExpiresAt: text('absolute_expires_at').notNull(),
+  revokedAt: text('revoked_at'),
+  revokedReason: text('revoked_reason'),
+  ipHashB64: text('ip_hash_b64'),
+  userAgentHashB64: text('user_agent_hash_b64'),
+}, (table) => [
+  index('idx_auth_sessions_user_created').on(table.userId, table.createdAt),
+  index('idx_auth_sessions_expiry').on(table.idleExpiresAt, table.absoluteExpiresAt),
+  index('idx_auth_sessions_active_token').on(table.tokenHashB64).where(sql`${table.revokedAt} is null`),
+]);
+
 export const mediaAssets = sqliteTable('media_assets', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id),

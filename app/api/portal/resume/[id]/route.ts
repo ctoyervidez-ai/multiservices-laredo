@@ -1,13 +1,13 @@
-import { getChatGPTUser } from '@/app/chatgpt-auth';
 import { ensureDatabase, getD1, getFilesBucket } from '@/db';
 import { can } from '@/lib/portal-access';
+import { getPortalIdentityFromCookie } from '@/lib/portal-auth';
 import { getPortalContext, writeAuditLog } from '@/lib/site-repository';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request, route: { params: Promise<{ id: string }> }) {
   await ensureDatabase();
-  const context = await getPortalContext(await getChatGPTUser(), new URL(request.url).host);
+  const context = await getPortalContext(await getPortalIdentityFromCookie(request.headers.get('cookie'), new URL(request.url).host));
   if (!context) return new Response('Unauthorized', { status: 401 });
   if (!context.authorized || !can(context.role, 'viewApplications')) return new Response('Forbidden', { status: 403 });
 

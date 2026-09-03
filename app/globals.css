@@ -609,6 +609,21 @@ footer { padding-top:95px; background:linear-gradient(180deg,#011325,#000b15); c
 .portal-access-page>section>span { max-width:610px; color:#afc1cd; font-size:15px; line-height:1.7; }
 .portal-access-page>section>a { min-height:52px; display:flex; align-items:center; margin-top:32px; padding:0 22px; background:var(--gold); color:var(--navy-deep); font-size:11px; font-weight:950; letter-spacing:.08em; text-transform:uppercase; }
 .portal-access-page>section>small { margin-top:16px; color:#748d9d; font-size:10px; }
+.portal-auth-form { width:min(470px,100%); display:grid; gap:14px; margin-top:30px; }
+.portal-auth-field { display:grid; gap:7px; }
+.portal-auth-field>span { color:#d7e1e7; font-size:10px; font-weight:850; letter-spacing:.055em; text-transform:uppercase; }
+.portal-auth-field input { width:100%; min-height:51px; padding:0 14px; border:1px solid #ffffff2b; border-radius:0; outline:0; background:#ffffff0b; color:white; font:inherit; font-size:14px; transition:border-color .18s ease,background .18s ease,box-shadow .18s ease; }
+.portal-auth-field input::placeholder { color:#748b9a; }
+.portal-auth-field input:focus { border-color:var(--gold-bright); background:#ffffff10; box-shadow:0 0 0 3px #e5a20b1a; }
+.portal-auth-note { margin:0; padding:11px 13px; border-left:2px solid #e5a20b80; background:#e5a20b0b; color:#8fa6b5; font-size:10px; line-height:1.55; }
+.portal-auth-help { margin:0; color:#8198a7; font-size:10px; line-height:1.55; }
+.portal-auth-session-message { width:min(470px,100%); margin:22px 0 -14px; padding:11px 13px; border-left:3px solid var(--gold-bright); background:#e5a20b10; color:#d9e2e8; font-size:11px; line-height:1.5; }
+.portal-auth-error { margin:0; padding:11px 13px; border-left:3px solid #ff8c78; background:#ff6b5218; color:#ffd9d2; font-size:11px; line-height:1.5; }
+.portal-auth-submit { min-height:52px; display:flex; align-items:center; justify-content:center; padding:0 22px; border:1px solid var(--gold); background:linear-gradient(120deg,var(--gold),var(--gold-bright)); color:var(--navy-deep); font-size:11px; font-weight:950; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; }
+.portal-auth-submit:hover { filter:brightness(1.05); }
+.portal-auth-submit:disabled { opacity:.62; cursor:wait; }
+.portal-auth-submit.standalone { margin-top:30px; }
+.portal-logout-control { width:min(470px,100%); }
 .portal-loading { min-height:100svh; display:grid; grid-template-columns:250px 1fr; background:#eef1f3; }
 .portal-loading>div { background:var(--navy-deep); }
 .portal-loading>section { display:grid; grid-template-columns:repeat(3,1fr); align-content:start; gap:18px; padding:120px 5vw; }
@@ -628,8 +643,9 @@ footer { padding-top:95px; background:linear-gradient(180deg,#011325,#000b15); c
 .portal-sidebar nav button.active svg { color:var(--gold-bright); }
 .portal-sidebar nav button b { min-width:21px; min-height:21px; display:grid; place-items:center; border-radius:50%; background:var(--gold); color:var(--navy-deep); font-size:9px; }
 .portal-sidebar-bottom { display:grid; gap:7px; margin-top:auto; padding-top:20px; border-top:1px solid #ffffff1c; }
-.portal-sidebar-bottom a { min-height:40px; display:flex; align-items:center; gap:10px; padding:0 12px; color:#9db1bf; font-size:11px; }
-.portal-sidebar-bottom a:hover { color:white; }
+.portal-sidebar-bottom a,.portal-sidebar-bottom button { min-height:40px; display:flex; align-items:center; gap:10px; padding:0 12px; border:0; background:transparent; color:#9db1bf; font:inherit; font-size:11px; text-align:left; cursor:pointer; }
+.portal-sidebar-bottom a:hover,.portal-sidebar-bottom button:hover { color:white; }
+.portal-sidebar-bottom button:disabled { opacity:.65; cursor:wait; }
 .portal-workspace { min-width:0; }
 .portal-topbar { min-height:76px; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:0 4vw; border-bottom:1px solid #0a315516; background:#f9fafaeF; backdrop-filter:blur(14px); }
 .portal-topbar>div:first-of-type { display:flex; align-items:center; gap:10px; }
@@ -741,7 +757,8 @@ footer { padding-top:95px; background:linear-gradient(180deg,#011325,#000b15); c
 .candidate-message small { display:flex; align-items:center; gap:6px; color:#75838b; font-size:10px; }
 .candidate-actions { min-width:150px; display:grid; gap:6px; }
 .candidate-actions select { width:100%; min-height:35px; padding:0 9px; border:1px solid #0c375c1c; background:#f7f8f7; color:#344751; font-size:9px; font-weight:800; }
-.candidate-actions>a,.candidate-actions>span { min-height:31px; display:flex; align-items:center; gap:7px; padding:0 8px; border:1px solid #0c375c16; color:#53656f; font-size:9px; font-weight:760; }
+.candidate-actions>a,.candidate-actions>button,.candidate-actions>span { min-height:31px; display:flex; align-items:center; gap:7px; padding:0 8px; border:1px solid #0c375c16; background:white; color:#53656f; font:inherit; font-size:9px; font-weight:760; text-align:left; cursor:pointer; }
+.candidate-actions>button:disabled { opacity:.6; cursor:wait; }
 .content-editor { display:grid; gap:14px; }
 .editor-panel,.photo-editor { padding:26px; }
 .editor-section-head { display:grid; grid-template-columns:38px 1fr; gap:13px; align-items:start; margin-bottom:24px; }
@@ -793,7 +810,7 @@ footer { padding-top:95px; background:linear-gradient(180deg,#011325,#000b15); c
 .portal-topbar>div:first-of-type>small,.portal-user small,.recent-applications small,.portal-jobs-table>article>small { font-size:10px; }
 .portal-panel-head span,.recent-applications article>div:nth-child(2)>span,.portal-quick-panel small,.portal-list-toolbar>div button,.portal-jobs-table>article>div:first-child span,.portal-jobs-table>article>div:nth-child(3)>span,.candidate-main p,.candidate-contact a,.candidate-contact span,.editor-section-head p,.photo-slot p { font-size:11px; }
 .portal-panel-head button,.portal-primary,.portal-secondary,.content-save-bar>span,.editor-grid label,.photo-slot label,.job-editor-modal footer label,.job-editor-modal footer select { font-size:11px; }
-.portal-jobs-table strong,.recent-applications strong,.candidate-actions select,.candidate-actions>a,.candidate-actions>span { font-size:11px; }
+.portal-jobs-table strong,.recent-applications strong,.candidate-actions select,.candidate-actions>a,.candidate-actions>button,.candidate-actions>span { font-size:11px; }
 
 @media(max-width:1100px) {
   .jobs-toolbar { grid-template-columns:1fr 1fr; }
@@ -838,6 +855,9 @@ footer { padding-top:95px; background:linear-gradient(180deg,#011325,#000b15); c
   .portal-access-brand img { width:92px; }
   .portal-access-page>section { padding:58px 24px 70px; }
   .portal-access-page h1 { font-size:48px; }
+  .portal-auth-form { width:100%; }
+  .portal-auth-field input { font-size:16px; }
+  .portal-auth-submit { width:100%; }
   .portal-shell { display:block; }
   .portal-sidebar { position:fixed; inset:0 auto 0 0; width:min(86vw,310px); height:100svh; transform:translateX(-105%); transition:transform .3s var(--ease); box-shadow:20px 0 60px #00122555; }
   .portal-sidebar.is-open { transform:none; }

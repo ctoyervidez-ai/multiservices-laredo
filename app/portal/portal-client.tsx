@@ -28,7 +28,7 @@ const settingsFields = [
   'contactPhone', 'contactWhatsapp', 'contactEmail',
 ] as const satisfies ReadonlyArray<keyof SiteSettings>;
 
-export default function PortalClient({ initialSnapshot, signOutPath }: { initialSnapshot: PortalSnapshot; signOutPath: string }) {
+export default function PortalClient({ initialSnapshot }: { initialSnapshot: PortalSnapshot }) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [section, setSection] = useState<Section>('overview');
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -59,6 +59,10 @@ export default function PortalClient({ initialSnapshot, signOutPath }: { initial
     setBusy(progress); setNotice(null);
     try {
       const request = await fetch('/api/portal', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+      if (request.status === 401) {
+        window.location.replace('/portal?reason=session-expired');
+        return false;
+      }
       const result = await request.json() as { error?: string; snapshot?: PortalSnapshot };
       if (!request.ok || !result.snapshot) throw new Error(result.error || 'No fue posible guardar los cambios.');
       setSnapshot(result.snapshot);
@@ -87,6 +91,28 @@ export default function PortalClient({ initialSnapshot, signOutPath }: { initial
     await portalAction({ action: 'application_status', id: application.id, status }, `application-${application.id}`, 'Estado del candidato actualizado.');
   }
 
+  async function downloadResume(application: ApplicationRecord) {
+    setBusy(`resume-${application.id}`); setNotice(null);
+    try {
+      const response = await fetch(`/api/portal/resume/${application.id}`);
+      if (response.status === 401) {
+        window.location.replace('/portal?reason=session-expired');
+        return;
+      }
+      if (!response.ok) throw new Error('No pudimos descargar este currículum.');
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = application.resumeFilename || 'curriculum.pdf';
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch (error) {
+      setNotice({ kind: 'error', text: error instanceof Error ? error.message : 'No pudimos descargar este currículum.' });
+    } finally {
+      setBusy('');
+    }
+  }
+
   async function saveSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await portalAction({ action: 'save_settings', settings: settingsDraft }, 'settings', 'Contenido principal actualizado.', true);
@@ -102,6 +128,10 @@ export default function PortalClient({ initialSnapshot, signOutPath }: { initial
       form.set('altEs', slot === 'hero' ? 'Equipo de Multiservices Laredo en operación' : slot === 'transport' ? 'Transporte coordinado para colaboradores' : 'Equipo operativo trabajando en un proyecto');
       form.set('altEn', slot === 'hero' ? 'Multiservices Laredo team at work' : slot === 'transport' ? 'Coordinated employee transportation' : 'Operations team working on a project');
       const request = await fetch('/api/portal/media', { method: 'POST', body: form });
+      if (request.status === 401) {
+        window.location.replace('/portal?reason=session-expired');
+        return;
+      }
       const result = await request.json() as { error?: string; snapshot?: PortalSnapshot };
       if (!request.ok || !result.snapshot) throw new Error(result.error || 'No fue posible subir la fotografía.');
       setSnapshot(result.snapshot);
@@ -121,22 +151,39 @@ export default function PortalClient({ initialSnapshot, signOutPath }: { initial
     } finally { setBusy(''); }
   }
 
+  async function logout() {
+    setBusy('logout');
+    setNotice(null);
+    try {
+      const response = await fetch('/api/portal/auth/logout', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{}',
+      });
+      if (!response.ok) throw new Error('No pudimos cerrar la sesión. Inténtalo nuevamente.');
+      window.location.replace('/portal');
+    } catch (error) {
+      setNotice({ kind: 'error', text: error instanceof Error ? error.message : 'No pudimos cerrar la sesión.' });
+      setBusy('');
+    }
+  }
+
   const go = (next: Section) => { setSection(next); setMobileMenu(false); setNotice(null); };
 
   return <main className="portal-shell">
     <aside className={`portal-sidebar ${mobileMenu ? 'is-open' : ''}`}>
       <div className="portal-logo"><img src="/logo-optimized.webp" alt="" /><span>MULTISERVICES<small>PORTAL DE EMPRESA</small></span><button type="button" onClick={() => setMobileMenu(false)} aria-label="Cerrar menú"><X size={20} /></button></div>
       <nav aria-label="Navegación del portal">{availableNavigation.map(({ id, label, icon: Icon }) => <button type="button" className={section === id ? 'active' : ''} onClick={() => go(id)} key={id}><Icon size={19} /><span>{label}</span>{id === 'applications' && snapshot.metrics.newApplications > 0 && <b>{snapshot.metrics.newApplications}</b>}</button>)}</nav>
-      <div className="portal-sidebar-bottom"><Link href="/" target="_blank"><ExternalLink size={17} />Ver página pública</Link><a href={signOutPath} target="_top"><LogOut size={17} />Cerrar sesión</a></div>
+      <div className="portal-sidebar-bottom"><Link href="/" target="_blank"><ExternalLink size={17} />Ver página pública</Link><button type="button" onClick={logout} disabled={busy === 'logout'}>{busy === 'logout' ? <LoaderCircle className="spin" size={17} /> : <LogOut size={17} />}Cerrar sesión</button></div>
     </aside>
 
     <section className="portal-workspace">
-      <header className="portal-topbar"><button type="button" className="portal-menu-button" onClick={() => setMobileMenu(true)} aria-label="Abrir menú"><Menu size={21} /></button><div><span>{snapshot.tenant.name}</span>{snapshot.user.localPreview && <small>Vista local segura</small>}</div><div className="portal-user"><span>{initials(snapshot.user.displayName)}</span><div><b>{snapshot.user.displayName}</b><small>{snapshot.user.role === 'owner' ? 'Propietario' : snapshot.user.role === 'editor' ? 'Editor de contenido' : 'Reclutamiento'}</small></div></div></header>
+      <header className="portal-topbar"><button type="button" className="portal-menu-button" onClick={() => setMobileMenu(true)} aria-label="Abrir menú"><Menu size={21} /></button><div><span>{snapshot.tenant.name}</span></div><div className="portal-user"><span>{initials(snapshot.user.displayName)}</span><div><b>{snapshot.user.displayName}</b><small>{snapshot.user.role === 'owner' ? 'Administrador' : snapshot.user.role === 'editor' ? 'Editor de contenido' : 'Reclutamiento'}</small></div></div></header>
       {notice && <div className={`portal-notice ${notice.kind}`} role="status">{notice.kind === 'success' ? <Check size={17} /> : <span>!</span>}{notice.text}<button type="button" onClick={() => setNotice(null)} aria-label="Cerrar"><X size={15} /></button></div>}
       <div className="portal-content">
         {section === 'overview' && <Overview snapshot={snapshot} onNavigate={go} onNewJob={() => setJobDraft(emptyJob())} />}
         {section === 'jobs' && <JobsSection jobs={filteredJobs} query={jobQuery} setQuery={setJobQuery} filter={jobFilter} setFilter={setJobFilter} onEdit={(job) => setJobDraft(toEditableJob(job))} onNew={() => setJobDraft(emptyJob())} onArchive={archiveJob} busy={busy} canManage={capabilities.manageJobs} canArchive={capabilities.archiveJobs} />}
-        {section === 'applications' && capabilities.viewApplications && <ApplicationsSection applications={filteredApplications} query={applicationQuery} setQuery={setApplicationQuery} filter={applicationFilter} setFilter={setApplicationFilter} onStatus={updateApplication} busy={busy} />}
+        {section === 'applications' && capabilities.viewApplications && <ApplicationsSection applications={filteredApplications} query={applicationQuery} setQuery={setApplicationQuery} filter={applicationFilter} setFilter={setApplicationFilter} onStatus={updateApplication} onResume={downloadResume} busy={busy} />}
         {section === 'content' && capabilities.editContent && <ContentSection settings={settingsDraft} setSettings={setSettingsDraft} onSave={saveSettings} onUpload={uploadImage} busy={busy} dirty={settingsDirty} />}
       </div>
     </section>
@@ -168,13 +215,13 @@ function JobsSection({ jobs, query, setQuery, filter, setFilter, onEdit, onNew, 
     <section className="portal-panel portal-table-panel">{jobs.length ? <div className="portal-jobs-table"><div className="portal-table-head"><span>Vacante</span><span>Estado</span><span>Condiciones</span><span>Solicitudes</span><span>Actualización</span><span /></div>{jobs.map((job) => <article key={job.id}><div><strong>{job.titleEs}</strong><span><MapPin size={13} />{job.location}</span></div><Status kind={job.status} label={jobLabels[job.status]} /><div><strong>{job.payMin === null ? 'Sueldo por confirmar' : `$${job.payMin}${job.payMax ? `–$${job.payMax}` : ''} / ${job.payUnit}`}</strong><span>{job.shift}</span></div><b>{job.applicationCount || 0}</b><small>{relativeDate(job.updatedAt)}</small><div className="portal-row-actions">{isPublicJob(job) && <Link href={`/vacantes/${job.slug}`} target="_blank" aria-label="Ver vacante publicada"><ExternalLink size={16} /></Link>}{canManage && job.status !== 'archived' && <button type="button" onClick={() => onEdit(job)} aria-label="Editar vacante"><Pencil size={16} /></button>}{canArchive && job.status !== 'archived' && <button type="button" disabled={busy === `archive-${job.id}`} onClick={() => onArchive(job)} aria-label="Archivar vacante">{busy === `archive-${job.id}` ? <LoaderCircle className="spin" size={16} /> : <Archive size={16} />}</button>}</div></article>)}</div> : <Empty icon={BriefcaseBusiness} title="No hay vacantes con ese filtro" text="Cambia la búsqueda o crea una nueva oportunidad." action={canManage ? 'Crear vacante' : undefined} onAction={canManage ? onNew : undefined} />}</section></>;
 }
 
-function ApplicationsSection({ applications, query, setQuery, filter, setFilter, onStatus, busy }: {
+function ApplicationsSection({ applications, query, setQuery, filter, setFilter, onStatus, onResume, busy }: {
   applications: ApplicationRecord[]; query: string; setQuery: (value: string) => void; filter: 'all' | ApplicationStatus; setFilter: (value: 'all' | ApplicationStatus) => void;
-  onStatus: (application: ApplicationRecord, status: ApplicationStatus) => void; busy: string;
+  onStatus: (application: ApplicationRecord, status: ApplicationStatus) => void; onResume: (application: ApplicationRecord) => void; busy: string;
 }) {
   return <><div className="portal-page-heading compact"><div><p>Seguimiento</p><h1>Candidatos</h1><span>Solicitudes guardadas directamente desde la página.</span></div></div>
     <div className="portal-list-toolbar application-toolbar"><label><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar nombre, correo o folio" /></label><select value={filter} onChange={(event) => setFilter(event.target.value as 'all' | ApplicationStatus)}><option value="all">Todas las etapas</option>{Object.entries(applicationLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></div>
-    <section className="candidate-list">{applications.length ? applications.map((application) => <article key={application.id}><div className="candidate-main"><div className="candidate-avatar">{initials(application.fullName)}</div><div><span>{application.reference}</span><h2>{application.fullName}</h2><p>{application.jobTitle || application.roleInterest}</p></div></div><div className="candidate-contact"><a href={`tel:${application.phone}`}><Phone size={15} />{application.phone}</a><a href={`mailto:${application.email}`}><Mail size={15} />{application.email}</a>{application.city && <span><MapPin size={15} />{application.city}</span>}</div><div className="candidate-message">{application.availability && <strong><Clock3 size={14} />Disponibilidad: {application.availability}</strong>}{application.message.length > 180 ? <details><summary>Leer mensaje completo</summary><p>{application.message}</p></details> : <p>{application.message || 'Sin mensaje adicional.'}</p>}<small><Clock3 size={14} />Aplicó {relativeDate(application.createdAt)}</small></div><div className="candidate-actions"><label><span className="sr-only">Estado de {application.fullName}</span><select value={application.status} disabled={busy === `application-${application.id}`} onChange={(event) => onStatus(application, event.target.value as ApplicationStatus)}>{Object.entries(applicationLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>{application.resumeFilename ? <a href={`/api/portal/resume/${application.id}`}><FileText size={16} />Descargar CV</a> : <span><FileText size={16} />Sin CV</span>}<a href={`https://wa.me/${application.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"><MessageCircle size={16} />WhatsApp</a></div></article>) : <Empty icon={UserRound} title="Aún no hay candidatos aquí" text="Las nuevas solicitudes aparecerán automáticamente con sus datos y CV." />}</section></>;
+    <section className="candidate-list">{applications.length ? applications.map((application) => <article key={application.id}><div className="candidate-main"><div className="candidate-avatar">{initials(application.fullName)}</div><div><span>{application.reference}</span><h2>{application.fullName}</h2><p>{application.jobTitle || application.roleInterest}</p></div></div><div className="candidate-contact"><a href={`tel:${application.phone}`}><Phone size={15} />{application.phone}</a><a href={`mailto:${application.email}`}><Mail size={15} />{application.email}</a>{application.city && <span><MapPin size={15} />{application.city}</span>}</div><div className="candidate-message">{application.availability && <strong><Clock3 size={14} />Disponibilidad: {application.availability}</strong>}{application.message.length > 180 ? <details><summary>Leer mensaje completo</summary><p>{application.message}</p></details> : <p>{application.message || 'Sin mensaje adicional.'}</p>}<small><Clock3 size={14} />Aplicó {relativeDate(application.createdAt)}</small></div><div className="candidate-actions"><label><span className="sr-only">Estado de {application.fullName}</span><select value={application.status} disabled={busy === `application-${application.id}`} onChange={(event) => onStatus(application, event.target.value as ApplicationStatus)}>{Object.entries(applicationLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>{application.resumeFilename ? <button type="button" disabled={busy === `resume-${application.id}`} onClick={() => onResume(application)}>{busy === `resume-${application.id}` ? <LoaderCircle className="spin" size={16} /> : <FileText size={16} />}Descargar CV</button> : <span><FileText size={16} />Sin CV</span>}<a href={`https://wa.me/${application.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"><MessageCircle size={16} />WhatsApp</a></div></article>) : <Empty icon={UserRound} title="Aún no hay candidatos aquí" text="Las nuevas solicitudes aparecerán automáticamente con sus datos y CV." />}</section></>;
 }
 
 function ContentSection({ settings, setSettings, onSave, onUpload, busy, dirty }: {

@@ -8,10 +8,12 @@ export const DEFAULT_TENANT_ID = 'multiservices-laredo';
 type RuntimeEnv = {
   DB?: D1Database;
   FILES?: R2Bucket;
-  PORTAL_OWNER_EMAILS?: string;
+  PORTAL_SETUP_CODE?: string;
+  PORTAL_SETUP_EXPIRES_AT?: string;
+  PORTAL_PASSWORD_PEPPER_V1?: string;
+  PORTAL_AUTH_LOOKUP_KEY_V1?: string;
   SITE_TENANT_ID?: string;
   SITE_NAME?: string;
-  ALLOW_LOCAL_PORTAL_PREVIEW?: string;
 };
 
 function runtimeEnv() {
@@ -34,11 +36,28 @@ export function getDb() {
   return drizzle(getD1(), { schema });
 }
 
-export function getOwnerEmails() {
-  return (runtimeEnv().PORTAL_OWNER_EMAILS || '')
-    .split(',')
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
+function getRequiredSecret(name: 'PORTAL_SETUP_CODE' | 'PORTAL_SETUP_EXPIRES_AT' | 'PORTAL_PASSWORD_PEPPER_V1' | 'PORTAL_AUTH_LOOKUP_KEY_V1') {
+  const value = runtimeEnv()[name];
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`Falta configurar el secreto ${name}.`);
+  }
+  return value;
+}
+
+export function getPortalSetupCode() {
+  return getRequiredSecret('PORTAL_SETUP_CODE');
+}
+
+export function getPortalSetupExpiresAt() {
+  return getRequiredSecret('PORTAL_SETUP_EXPIRES_AT');
+}
+
+export function getPortalPasswordPepper() {
+  return getRequiredSecret('PORTAL_PASSWORD_PEPPER_V1');
+}
+
+export function getPortalAuthLookupKey() {
+  return getRequiredSecret('PORTAL_AUTH_LOOKUP_KEY_V1');
 }
 
 export function getSiteTenantId() {
@@ -48,10 +67,6 @@ export function getSiteTenantId() {
 
 export function getSiteName() {
   return String(runtimeEnv().SITE_NAME || '').trim().slice(0, 120) || 'Multiservices Laredo';
-}
-
-export function allowsLocalPortalPreview() {
-  return runtimeEnv().ALLOW_LOCAL_PORTAL_PREVIEW === 'true' || process.env.ALLOW_LOCAL_PORTAL_PREVIEW === 'true';
 }
 
 let initialization: Promise<void> | null = null;

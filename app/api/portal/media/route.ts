@@ -1,6 +1,6 @@
-import { getChatGPTUser } from '@/app/chatgpt-auth';
 import { ensureDatabase, getD1, getFilesBucket } from '@/db';
 import { can } from '@/lib/portal-access';
+import { getPortalIdentityFromCookie } from '@/lib/portal-auth';
 import { getPortalContext, getPortalSnapshot } from '@/lib/site-repository';
 import { formDataWithLimit, PayloadTooLargeError, validateBrowserMutation } from '@/lib/request-security';
 
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       return respond({ error: 'Solicitud no permitida.' }, 403);
     }
     await ensureDatabase();
-    const context = await getPortalContext(await getChatGPTUser(), new URL(request.url).host);
+    const context = await getPortalContext(await getPortalIdentityFromCookie(request.headers.get('cookie'), new URL(request.url).host));
     if (!context) return respond({ error: 'Inicia sesión para continuar.' }, 401);
     if (!context.authorized || !can(context.role, 'manageMedia')) return respond({ error: 'Sin permiso para editar fotografías.' }, 403);
 

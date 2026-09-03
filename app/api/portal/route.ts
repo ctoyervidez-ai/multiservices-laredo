@@ -1,6 +1,6 @@
-import { getChatGPTUser } from '@/app/chatgpt-auth';
 import { ensureDatabase, getD1 } from '@/db';
 import { can } from '@/lib/portal-access';
+import { getPortalIdentityFromCookie } from '@/lib/portal-auth';
 import type { ApplicationStatus, JobStatus } from '@/lib/portal-types';
 import { getPortalContext, getPortalSnapshot, slugify } from '@/lib/site-repository';
 import { jsonWithLimit, PayloadTooLargeError, validateBrowserMutation } from '@/lib/request-security';
@@ -31,7 +31,7 @@ function response(body: unknown, status = 200) {
 
 async function authorize(request: Request) {
   await ensureDatabase();
-  const context = await getPortalContext(await getChatGPTUser(), new URL(request.url).host);
+  const context = await getPortalContext(await getPortalIdentityFromCookie(request.headers.get('cookie'), new URL(request.url).host));
   if (!context) return { error: response({ error: 'Inicia sesión para continuar.' }, 401) } as const;
   if (!context.authorized) return { error: response({ error: 'Tu cuenta no tiene acceso a este portal.' }, 403) } as const;
   return { context } as const;
@@ -52,6 +52,9 @@ export async function POST(request: Request) {
     payload = await jsonWithLimit<Record<string, unknown>>(request, 128 * 1024);
   } catch (error) {
     if (error instanceof PayloadTooLargeError) return response({ error: 'La solicitud es demasiado grande.' }, 413);
+    return response({ error: 'El formato de la solicitud no es válido.' }, 400);
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return response({ error: 'El formato de la solicitud no es válido.' }, 400);
   }
   const auth = await authorize(request);

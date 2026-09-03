@@ -1,6 +1,6 @@
-import type { ChatGPTUser } from '@/app/chatgpt-auth';
-import { allowsLocalPortalPreview, ensureDatabase, getD1, getOwnerEmails, getSiteName, getSiteTenantId } from '@/db';
+import { ensureDatabase, getD1, getSiteName, getSiteTenantId } from '@/db';
 import { can, isPortalRole, roleCapabilities } from '@/lib/portal-access';
+import type { PortalIdentity } from '@/lib/portal-auth';
 import type { ApplicationRecord, JobRecord, MediaAsset, PortalRole, PortalSnapshot, PublicJob, SiteSettings } from '@/lib/portal-types';
 
 const JOB_COLUMNS = `
@@ -91,60 +91,24 @@ export async function getSiteSettings(tenantId = getSiteTenantId()): Promise<Sit
   };
 }
 
-export async function getPortalContext(user: ChatGPTUser | null, requestHost = '') {
+export async function getPortalContext(user: PortalIdentity | null) {
   await ensureDatabase();
-  const hostname = requestHost.split(':')[0].toLowerCase();
-  const loopback = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
-  const localPreview = !user && process.env.NODE_ENV !== 'production' && loopback && allowsLocalPortalPreview();
-  const effectiveUser: ChatGPTUser | null = user ?? (localPreview ? {
-    userId: 'local-preview-owner',
-    email: 'preview@multiservices.local',
-    displayName: 'Vista local',
-    fullName: 'Vista local',
-  } : null);
-  if (!effectiveUser) return null;
+  if (!user) return null;
 
   const database = getD1();
   const tenantId = getSiteTenantId();
-  if (localPreview) {
-    return {
-      authorized: true as const,
-      tenantId,
-      role: 'owner' as const,
-      user: effectiveUser,
-      localPreview: true,
-    };
-  }
-
-  const normalizedEmail = effectiveUser.email.toLowerCase();
-  const configuredOwner = getOwnerEmails().includes(normalizedEmail);
-  if (configuredOwner) {
-    await database.prepare(`INSERT INTO memberships (id, tenant_id, user_id, email, role, created_at)
-      VALUES (?, ?, ?, ?, 'owner', ?)
-      ON CONFLICT(tenant_id, email) DO UPDATE SET
-        user_id = CASE WHEN memberships.user_id IS NULL OR memberships.user_id = excluded.user_id THEN excluded.user_id ELSE memberships.user_id END,
-        role = 'owner'`)
-      .bind(crypto.randomUUID(), tenantId, effectiveUser.userId, normalizedEmail, new Date().toISOString()).run();
-  } else {
-    await database.prepare(`UPDATE memberships SET user_id = ?
-      WHERE tenant_id = ? AND lower(email) = ? AND user_id IS NULL
-        AND NOT EXISTS (SELECT 1 FROM memberships claimed WHERE claimed.tenant_id = ? AND claimed.user_id = ?)`)
-      .bind(effectiveUser.userId, tenantId, normalizedEmail, tenantId, effectiveUser.userId).run();
-  }
-
   const membership = await database.prepare(`SELECT m.tenant_id AS tenantId, m.role
     FROM memberships m JOIN tenants t ON t.id = m.tenant_id
     WHERE m.tenant_id = ? AND m.user_id = ? AND t.status = 'active' LIMIT 1`)
-    .bind(tenantId, effectiveUser.userId)
+    .bind(tenantId, user.userId)
     .first<{ tenantId: string; role: string }>();
-  if (!membership || !isPortalRole(membership.role)) return { authorized: false as const, user: effectiveUser, localPreview: false };
+  if (!membership || !isPortalRole(membership.role)) return { authorized: false as const, user };
 
   return {
     authorized: true as const,
     tenantId: membership.tenantId,
     role: membership.role as PortalRole,
-    user: effectiveUser,
-    localPreview: false,
+    user,
   };
 }
 
@@ -186,7 +150,6 @@ export async function getPortalSnapshot(context: Extract<Awaited<ReturnType<type
       email: context.user.email,
       displayName: context.user.displayName,
       role: context.role,
-      localPreview: context.localPreview,
     },
     jobs,
     applications,

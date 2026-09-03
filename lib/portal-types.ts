@@ -86,7 +86,7 @@ export type SiteSettings = {
 
 export type PortalSnapshot = {
   tenant: { id: string; name: string; slug: string };
-  user: { userId: string; email: string; displayName: string; role: PortalRole; localPreview: boolean };
+  user: { userId: string; email: string; displayName: string; role: PortalRole };
   jobs: JobRecord[];
   applications: ApplicationRecord[];
   settings: SiteSettings;
