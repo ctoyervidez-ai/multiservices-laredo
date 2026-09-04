@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowLeft, BriefcaseBusiness, CheckCircle2, Clock3, DollarSign, Languages, MapPin, Users } from 'lucide-react';
-import Link from 'next/link';
+import Link from '@/app/site-link';
 import { useState } from 'react';
 import { displayEmploymentType, displayShift, schemaEmploymentType } from '@/lib/job-display';
 import type { PublicJob } from '@/lib/portal-types';

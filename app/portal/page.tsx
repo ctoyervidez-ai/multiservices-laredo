@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/app/site-link';
 import { headers } from 'next/headers';
 import { getPortalAccessState, getPortalIdentityFromCookie } from '@/lib/portal-auth';
 import { getPortalContext, getPortalSnapshot } from '@/lib/site-repository';

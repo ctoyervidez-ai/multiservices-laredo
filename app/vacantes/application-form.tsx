@@ -1,7 +1,7 @@
 'use client';
 
 import { CheckCircle2, FileText, LoaderCircle, Send } from 'lucide-react';
-import Link from 'next/link';
+import Link from '@/app/site-link';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import type { PublicJob } from '@/lib/portal-types';
 

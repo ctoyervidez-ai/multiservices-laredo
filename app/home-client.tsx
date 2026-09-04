@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, type CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import Link from '@/app/site-link';
 import type { PublicJob, SiteSettings } from '@/lib/portal-types';
 import { DEFAULT_CONTACT_EMAIL } from '@/lib/site-contact';
 

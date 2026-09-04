@@ -6,7 +6,7 @@ import {
   Mail, MapPin, Menu, MessageCircle, Pencil, Phone, Plus, Save, Search, Upload, UserRound,
   UsersRound, X,
 } from 'lucide-react';
-import Link from 'next/link';
+import Link from '@/app/site-link';
 import { FormEvent, useMemo, useState } from 'react';
 import type { ApplicationRecord, ApplicationStatus, JobRecord, JobStatus, PortalSnapshot, SiteSettings } from '@/lib/portal-types';
 
