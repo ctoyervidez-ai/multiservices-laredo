@@ -1,5 +1,7 @@
 'use client';
 
+import { SITE_ORIGIN } from '@/lib/site-origin';
+
 import { FormEvent, type CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
 import Link from '@/app/site-link';
 import type { PublicJob, SiteSettings } from '@/lib/portal-types';
@@ -189,7 +191,7 @@ const localBusinessSchema = {
   '@context': 'https://schema.org',
   '@type': 'EmploymentAgency',
   name: 'Multiservices Laredo',
-  url: 'https://www.ethrovsdraft.com',
+  url: SITE_ORIGIN,
   telephone: '+1-956-441-1292',
   email: DEFAULT_CONTACT_EMAIL,
   address: { '@type': 'PostalAddress', streetAddress: '1316 Zaragoza St.', addressLocality: 'Laredo', addressRegion: 'TX', postalCode: '78040', addressCountry: 'US' },
@@ -276,15 +278,15 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
   const prepareContact = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const get = (name: string) => String(data.get(name) || '').trim();
-    if (audience === 'candidate') {
+    data.set('language', lang);
+    {
       setSubmitting(true);
       setSubmissionError('');
       if (!submissionKey.current) submissionKey.current = crypto.randomUUID();
       data.set('startedAt', String(submissionStartedAt.current));
       data.set('submissionKey', submissionKey.current);
       try {
-        const request = await fetch('/api/applications', { method: 'POST', body: data });
+        const request = await fetch(audience === 'candidate' ? '/api/applications' : '/api/inquiries', { method: 'POST', body: data });
         const result = await request.json() as { error?: string; reference?: string };
         if (!request.ok || !result.reference) throw new Error(result.error || (lang === 'es' ? 'No pudimos guardar tu solicitud.' : 'We could not save your application.'));
         setContactLinks({ email: '', whatsapp: '', reference: result.reference });
@@ -295,13 +297,7 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
       }
       return;
     }
-    const subject = lang === 'es' ? `Solicitud de personal — ${get('company')}` : `Staffing request — ${get('company')}`;
-    const lines = [`${t.name}: ${get('name')}`, `${t.phone}: ${get('phone')}`, `${t.email}: ${get('email')}`, `${t.company}: ${get('company')}`, `${t.need}: ${get('need')}`, `${t.message}: ${get('message') || '—'}`];
-    const body = lines.join('\n');
-    setContactLinks({
-      email: `mailto:${siteSettings?.contactEmail || DEFAULT_CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
-      whatsapp: `https://wa.me/${siteSettings?.contactWhatsapp || '19566069956'}?text=${encodeURIComponent(`${subject}\n\n${body}`)}`,
-    });
+
   };
 
   const navLinks = [
@@ -470,14 +466,16 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
             <div className="contact-intro" data-reveal="left"><p className="eyebrow gold"><span />{t.formKicker}</p><h2>{t.formTitle}</h2><p>{t.formIntro}</p><div className="direct-links"><a href={phoneHref}><small>PHONE</small><b>{contactPhone}</b><span>↗</span></a><a href={`https://wa.me/${contactWhatsapp}`} target="_blank" rel="noreferrer"><small>WHATSAPP</small><b>{whatsappDisplay}</b><span>↗</span></a><a href={`mailto:${contactEmail}`}><small>EMAIL</small><b>{contactEmail}</b><span>↗</span></a></div></div>
             <div className="form-shell" data-reveal="right" id="application-form">
               <div className="form-tabs" role="group" aria-label={lang === 'es' ? 'Tipo de solicitud' : 'Request type'}><button type="button" aria-pressed={audience === 'candidate'} className={audience === 'candidate' ? 'active' : ''} onClick={() => chooseAudience('candidate')}>{t.candidateTab}</button><button type="button" aria-pressed={audience === 'employer'} className={audience === 'employer' ? 'active' : ''} onClick={() => chooseAudience('employer')}>{t.employerTab}</button></div>
-              {contactLinks ? <div className="form-success" role="status"><span>✓</span><h3 ref={successHeadingRef} tabIndex={-1}>{contactLinks.reference ? (lang === 'es' ? 'Recibimos tu solicitud.' : 'We received your application.') : t.successTitle}</h3><p>{contactLinks.reference ? (lang === 'es' ? 'Tu información quedó guardada para que el equipo pueda revisarla y contactarte.' : 'Your information was saved so the team can review it and contact you.') : t.successText}</p>{contactLinks.reference ? <><strong className="application-reference">{lang === 'es' ? 'Folio' : 'Reference'}: {contactLinks.reference}</strong><div><Link className="primary-button" href="/vacantes">{lang === 'es' ? 'Ver vacantes' : 'View openings'}<span>↗</span></Link></div></> : <div><a className="primary-button" href={contactLinks.email}>{t.emailCta}<span>↗</span></a><a className="secondary-button light" href={contactLinks.whatsapp} target="_blank" rel="noreferrer">{t.whatsappCta}<span>↗</span></a></div>}<button type="button" onClick={() => { setContactLinks(null); submissionStartedAt.current = Date.now(); submissionKey.current = ''; }}>{t.editCta}</button></div> : <form onSubmit={prepareContact}>
+              {contactLinks ? <div className="form-success" role="status"><span>✓</span><h3 ref={successHeadingRef} tabIndex={-1}>{contactLinks.reference ? (lang === 'es' ? 'Recibimos tu solicitud.' : 'We received your application.') : t.successTitle}</h3><p>{contactLinks.reference ? (lang === 'es' ? 'Tu información quedó guardada para que el equipo pueda revisarla y contactarte.' : 'Your information was saved so the team can review it and contact you.') : t.successText}</p>{contactLinks.reference ? <><strong className="application-reference">{lang === 'es' ? 'Folio' : 'Reference'}: {contactLinks.reference}</strong><div><Link className="primary-button" href={audience === 'candidate' ? '/vacantes' : '/#servicios'}>{audience === 'candidate' ? (lang === 'es' ? 'Ver vacantes' : 'View openings') : (lang === 'es' ? 'Ver servicios' : 'View services')}<span>↗</span></Link></div></> : <div><a className="primary-button" href={contactLinks.email}>{t.emailCta}<span>↗</span></a><a className="secondary-button light" href={contactLinks.whatsapp} target="_blank" rel="noreferrer">{t.whatsappCta}<span>↗</span></a></div>}<button type="button" onClick={() => { setContactLinks(null); submissionStartedAt.current = Date.now(); submissionKey.current = ''; }}>{t.editCta}</button></div> : <form onSubmit={prepareContact}>
                 <div className="field-pair"><label>{t.name}<input name="name" required autoComplete="name" /></label><label>{t.phone}<input name="phone" required type="tel" autoComplete="tel" /></label></div>
                 <label>{t.email}<input name="email" required type="email" autoComplete="email" /></label>
                 {audience === 'candidate' ? <><label>{t.role}<select value={roleChoice} required onChange={(event) => setRoleChoice(event.target.value)}><option value="" disabled>{t.rolePrompt}</option>{t.roles.map((role, index) => <option value={String(index)} key={role}>{role}</option>)}<option value="other">{t.roleOther}</option></select></label>{roleChoice === 'other' ? <label>{t.roleOtherLabel}<input name="role" required /></label> : <input type="hidden" name="role" value={roleChoice ? t.roles[Number(roleChoice)] : ''} />}<small className="role-choice-note">{t.roleHelp}</small></> : <><label>{t.company}<input name="company" required autoComplete="organization" /></label><label>{t.need}<textarea name="need" rows={4} required /></label></>}
                 <label>{t.message}<textarea name="message" rows={3} /></label>
                 {audience === 'candidate' && <><label>{lang === 'es' ? 'Currículum (opcional)' : 'Résumé (optional)'}<input name="resume" type="file" accept="application/pdf,.pdf" /></label><label className="homepage-consent"><input name="consent" type="checkbox" value="yes" required /><span>{lang === 'es' ? 'Autorizo el uso de mis datos para evaluar esta solicitud y contactarme.' : 'I authorize the use of my information to evaluate this application and contact me.'}</span></label><input className="application-honeypot" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" /><small className="candidate-note">{t.candidateNote}</small></>}
+                {audience === 'employer' && <><label className="homepage-consent"><input name="consent" type="checkbox" value="yes" required /><span>{lang === 'es' ? 'Autorizo el uso de mis datos para atender esta solicitud y contactarme.' : 'I authorize use of my information to respond to this request and contact me.'}</span></label><input className="application-honeypot" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" /></>}
+                <Link href="/privacidad">{lang === 'es' ? 'Aviso de privacidad' : 'Privacy notice'}</Link>
                 {submissionError && <p className="homepage-form-error" role="alert">{submissionError}</p>}
-                <button className="primary-button form-submit" type="submit" disabled={submitting}>{submitting ? (lang === 'es' ? 'Enviando…' : 'Submitting…') : audience === 'candidate' ? (lang === 'es' ? 'Enviar solicitud' : 'Submit application') : t.submit}<span>{submitting ? '…' : '↗'}</span></button><small className="privacy-note">{audience === 'candidate' ? t.privacy : (lang === 'es' ? 'Nada se envía hasta que elijas correo o WhatsApp.' : 'Nothing is sent until you choose email or WhatsApp.')}</small>
+                <button className="primary-button form-submit" type="submit" disabled={submitting}>{submitting ? (lang === 'es' ? 'Enviando…' : 'Submitting…') : audience === 'candidate' ? (lang === 'es' ? 'Enviar solicitud' : 'Submit application') : (lang === 'es' ? 'Solicitar personal' : 'Request staffing')}<span>{submitting ? '…' : '↗'}</span></button><small className="privacy-note">{audience === 'candidate' ? t.privacy : (lang === 'es' ? 'Tu solicitud se guardará para que el equipo pueda darle seguimiento.' : 'Your request will be saved for our team to follow up.')}</small>
               </form>}
             </div>
           </div>
@@ -486,7 +484,7 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
 
       <footer>
         <div className="page-width footer-grid"><div className="footer-brand"><img src="/logo-optimized.webp" width="80" height="82" alt="Multiservices Laredo" /><h2>{t.footerLine1}<em>{t.footerLine2}</em></h2></div><div><b>{t.footerContact}</b><a href={phoneHref}>{contactPhone}</a><a href={`https://wa.me/${contactWhatsapp}`} target="_blank" rel="noreferrer">WhatsApp ↗</a><a href={`mailto:${contactEmail}`}>{contactEmail}</a></div><div><b>{t.footerVisit}</b><a href="https://maps.google.com/?q=1316+Zaragoza+St+Laredo+TX+78040" target="_blank" rel="noreferrer">1316 Zaragoza St.<br />Laredo, TX 78040 ↗</a></div><div><b>{t.footerSocial}</b><a href="https://www.instagram.com/multiservicesldo" target="_blank" rel="noreferrer">Instagram ↗</a><Link href="/portal">{lang === 'es' ? 'Portal de propietarios' : 'Owner portal'} ↗</Link></div></div>
-        <div className="page-width footer-bottom"><span>© 2026 Multiservices Laredo LLC</span><span>STAFFING / RECRUITMENT / TALENT SOLUTIONS</span><a href="#top">TOP ↑</a></div>
+        <div className="page-width footer-bottom"><span>© 2026 Multiservices Laredo LLC</span><Link href="/privacidad">{lang === 'es' ? 'Privacidad' : 'Privacy'}</Link><a href="#top">TOP ↑</a></div>
       </footer>
     </main>
   );

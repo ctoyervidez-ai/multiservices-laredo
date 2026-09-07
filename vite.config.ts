@@ -12,6 +12,8 @@ const { d1, r2 } = hostingConfig;
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';
 const localAuthVarNames = [
+  'RESEND_API_KEY',
+  'EMAIL_FROM',
   'PORTAL_SETUP_CODE',
   'PORTAL_SETUP_EXPIRES_AT',
   'PORTAL_PASSWORD_PEPPER_V1',

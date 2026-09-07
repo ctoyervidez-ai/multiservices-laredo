@@ -6,7 +6,10 @@ import {
   getPortalSetupCode,
   getPortalSetupExpiresAt,
   getSiteTenantId,
+  getEmailConfig,
 } from '@/db';
+import { deliverEmail } from '@/lib/email-delivery';
+import { SITE_ORIGIN } from '@/lib/site-origin';
 
 const PASSWORD_ALGORITHM = 'pbkdf2-hmac-sha256-v1';
 const PASSWORD_ITERATIONS = 600_000;
@@ -20,6 +23,63 @@ const PRODUCTION_COOKIE = '__Host-msl_portal';
 const DEVELOPMENT_COOKIE = 'msl_portal_dev';
 
 const encoder = new TextEncoder();
+
+export async function requestPasswordReset(request: Request, input: { email?: unknown }) {
+  assertSecureAuthTransport(request);
+  const config = getEmailConfig();
+  if (!config) throw new PortalAuthError('email_unavailable', 'La recuperación por correo aún no está activada. Contacta a Ethrov.', 503);
+  const email = normalizeEmail(input.email);
+  await ensureDatabase();
+  const database = getD1(), tenant = getSiteTenantId();
+  if (!await reserveAuthLimits(request, database, tenant, 'login', `reset:${email}`)) throw new PortalAuthError('rate_limited', 'Espera 15 minutos antes de volver a intentar.', 429);
+  const user = await database.prepare(`SELECT u.id, u.auth_version AS authVersion FROM portal_users u
+    JOIN memberships m ON m.user_id = u.id AND m.tenant_id = u.tenant_id
+    JOIN tenants t ON t.id = u.tenant_id
+    WHERE u.tenant_id = ? AND u.email = ? AND u.status = 'active' AND t.status = 'active' LIMIT 1`)
+    .bind(tenant, email).first<{ id: string; authVersion: number }>();
+  if (!user) return;
+  const token = toBase64Url(randomBytes(32)), hash = await keyedDigest(`reset:${tenant}:${token}`);
+  const expires = new Date(Date.now() + 30 * 60_000).toISOString();
+  await database.batch([
+    database.prepare('DELETE FROM password_resets WHERE expires_at < ?').bind(new Date().toISOString()),
+    database.prepare('INSERT INTO password_resets (token_hash, tenant_id, user_id, auth_version, expires_at) VALUES (?, ?, ?, ?, ?)').bind(hash, tenant, user.id, user.authVersion, expires),
+  ]);
+  // Keep the bearer token out of logs, stored message bodies, and query strings.
+  try {
+    await deliverEmail(config, { to: email, subject: 'Restablecer acceso a Multiservices Laredo', text: `Solicitaste restablecer tu contraseña. Este enlace vence en 30 minutos y funciona una vez:\n${SITE_ORIGIN}/portal/recuperar#token=${token}\nSi no lo solicitaste, ignora este correo. Tu contraseña no ha cambiado.` }, `reset-${hash}`);
+  } catch { console.error('password_reset_email_failed'); }
+}
+
+export async function completePasswordReset(request: Request, input: { token?: unknown; password?: unknown; confirmPassword?: unknown }) {
+  assertSecureAuthTransport(request);
+  await ensureDatabase();
+  const database = getD1(), tenant = getSiteTenantId();
+  if (!await reserveAuthLimits(request, database, tenant, 'login', 'reset-complete')) throw new PortalAuthError('rate_limited', 'Espera 15 minutos antes de volver a intentar.', 429);
+  const token = String(input.token || '');
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) throw new PortalAuthError('invalid_reset', 'El enlace no es válido o ya venció.', 400);
+  const password = validatePassword(input.password);
+  if (password !== input.confirmPassword) throw new PortalAuthError('password_mismatch', 'Las contraseñas no coinciden.', 400);
+  const hash = await keyedDigest(`reset:${tenant}:${token}`), now = new Date().toISOString();
+  const reset = await database.prepare(`SELECT r.user_id AS userId, r.auth_version AS authVersion FROM password_resets r
+    JOIN portal_users u ON u.id = r.user_id AND u.tenant_id = r.tenant_id
+    JOIN memberships m ON m.user_id = u.id AND m.tenant_id = u.tenant_id
+    JOIN tenants t ON t.id = u.tenant_id
+    WHERE r.token_hash = ? AND r.tenant_id = ? AND r.used_at IS NULL AND r.expires_at > ?
+      AND u.auth_version = r.auth_version AND u.status = 'active' AND t.status = 'active' LIMIT 1`)
+    .bind(hash, tenant, now).first<{ userId: string; authVersion: number }>();
+  if (!reset) throw new PortalAuthError('invalid_reset', 'El enlace no es válido o ya venció.', 400);
+  const salt = randomBytes(PASSWORD_SALT_BYTES), passwordHash = await derivePasswordHash(password, salt, PASSWORD_ITERATIONS);
+  const [updated] = await database.batch([
+    database.prepare(`UPDATE portal_users SET password_salt_b64 = ?, password_hash_b64 = ?, password_algorithm = ?, password_iterations = ?, pepper_version = 1,
+      auth_version = auth_version + 1, password_changed_at = ?, updated_at = ?
+      WHERE id = ? AND tenant_id = ? AND auth_version = ? AND status = 'active'
+      AND EXISTS (SELECT 1 FROM password_resets WHERE token_hash = ? AND tenant_id = ? AND used_at IS NULL AND expires_at > ?)`)
+      .bind(toBase64Url(salt), toBase64Url(passwordHash), PASSWORD_ALGORITHM, PASSWORD_ITERATIONS, now, now, reset.userId, tenant, reset.authVersion, hash, tenant, new Date().toISOString()),
+    database.prepare(`UPDATE password_resets SET used_at = ? WHERE token_hash = ? AND tenant_id = ? AND used_at IS NULL`).bind(now, hash, tenant),
+  ]);
+  if (!updated.meta.changes) throw new PortalAuthError('invalid_reset', 'El enlace no es válido o ya se usó.', 400);
+  // Existing sessions are rejected by the auth_version comparison in session lookup.
+}
 
 export type PortalIdentity = {
   userId: string;

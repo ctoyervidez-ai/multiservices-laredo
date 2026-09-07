@@ -906,3 +906,26 @@ footer { padding-top:95px; background:linear-gradient(180deg,#011325,#000b15); c
   .job-editor-modal footer button { flex:1; }
   .portal-notice { top:78px; left:12px; right:12px; max-width:none; }
 }
+/* Business workflow additions reuse the existing portal and brand surfaces. */
+.operations-panel { padding: 24px; margin-bottom: 22px; }
+.operations-panel h2 { font-size: 1.3rem; margin-bottom: 12px; }
+.operations-panel p { font-size: 1rem; line-height: 1.65; margin: 12px 0; }
+.operations-metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; margin: 20px 0; }
+.operations-metrics article { display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #edf2f6; border-radius: 12px; }
+.operations-metrics strong { font-size: 2rem; color: #173049; }
+.operations-metrics span, .operations-counts { font-size: 0.95rem; }
+.operations-counts, .operations-contact { display: flex; flex-wrap: wrap; gap: 18px; margin: 14px 0; }
+.operations-filters { display: flex; flex-wrap: wrap; gap: 20px; margin: 20px 0; }
+.operations-panel label { display: flex; flex-direction: column; gap: 8px; font-size: 1rem; }
+.operations-panel input, .operations-panel select { border: 1px solid #a6b4c2; border-radius: 8px; background: white; color: #173049; padding: 12px; max-width: 100%; font-size: 1rem; }
+.inquiry-card { border-top: 1px solid #d4dce4; padding: 24px 0; overflow-wrap: anywhere; }
+.inquiry-card small { font-size: 0.875rem; }
+.inquiry-card select { width: fit-content; }
+.preserve-lines { white-space: pre-wrap; }
+.privacy-page { max-width: 850px; margin: 0 auto; padding: 48px 24px 80px; color: #173049; background: white; }
+.privacy-page h1 { font-size: clamp(2rem,5vw,3rem); margin: 32px 0 20px; }
+.privacy-page h2 { font-size: 1.4rem; margin: 28px 0 14px; }
+.privacy-page p { font-size: 1rem; line-height: 1.8; margin: 16px 0; }
+.privacy-page a, .operations-contact a { text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+@media (max-width: 700px) { .operations-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); } .operations-panel { padding: 18px; } }
+@media (max-width: 380px) { .operations-metrics { grid-template-columns: 1fr; } }

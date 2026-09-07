@@ -1,5 +1,7 @@
 'use client';
 
+import { SITE_ORIGIN } from '@/lib/site-origin';
+
 import { ArrowLeft, BriefcaseBusiness, CheckCircle2, Clock3, DollarSign, Languages, MapPin, Users } from 'lucide-react';
 import Link from '@/app/site-link';
 import { useState } from 'react';
@@ -19,7 +21,7 @@ export default function JobDetailClient({ job }: { job: PublicJob }) {
     description: `${job.descriptionEs || job.summaryEs}\n\nRequisitos:\n${job.requirementsEs}`,
     datePosted: job.publishedAt || job.updatedAt, validThrough: job.closesAt || undefined,
     employmentType: schemaEmploymentType(job), directApply: true,
-    hiringOrganization: { '@type': 'Organization', name: 'Multiservices Laredo', sameAs: 'https://www.ethrovsdraft.com' },
+    hiringOrganization: { '@type': 'Organization', name: 'Multiservices Laredo', sameAs: SITE_ORIGIN },
     jobLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: 'Laredo', addressRegion: 'TX', addressCountry: 'US' } },
     baseSalary: job.payMin === null ? undefined : { '@type': 'MonetaryAmount', currency: 'USD', value: { '@type': 'QuantitativeValue', minValue: job.payMin, maxValue: job.payMax || job.payMin, unitText: job.payUnit === 'hora' ? 'HOUR' : job.payUnit.toUpperCase() } },
   };

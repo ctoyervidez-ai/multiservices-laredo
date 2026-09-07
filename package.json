@@ -10,6 +10,10 @@
     "build": "vinext build",
     "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "test": "node --test tests/contact-email-update.test.mjs tests/site-navigation.test.mjs tests/operations-security.test.mjs",
+    "test:site": "node --test tests/site-links.test.mjs",
+    "test:workflows": "node --test tests/workflows.test.mjs",
+    "check:types": "tsc --noEmit",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

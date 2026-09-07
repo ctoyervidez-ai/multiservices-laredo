@@ -7,10 +7,11 @@ import {
   UsersRound, X,
 } from 'lucide-react';
 import Link from '@/app/site-link';
+import OperationsPanel from './operations-panel';
 import { FormEvent, useMemo, useState } from 'react';
 import type { ApplicationRecord, ApplicationStatus, JobRecord, JobStatus, PortalSnapshot, SiteSettings } from '@/lib/portal-types';
 
-type Section = 'overview' | 'jobs' | 'applications' | 'content';
+type Section = 'overview' | 'jobs' | 'applications' | 'content' | 'operations';
 type EditableJob = Omit<JobRecord, 'createdAt' | 'updatedAt'>;
 
 const navigation: Array<{ id: Section; label: string; icon: typeof LayoutDashboard }> = [
@@ -18,6 +19,7 @@ const navigation: Array<{ id: Section; label: string; icon: typeof LayoutDashboa
   { id: 'jobs', label: 'Vacantes', icon: BriefcaseBusiness },
   { id: 'applications', label: 'Candidatos', icon: UsersRound },
   { id: 'content', label: 'Contenido y fotos', icon: ImageIcon },
+  { id: 'operations', label: 'Empresas y resultados', icon: CircleGauge },
 ];
 
 const jobLabels: Record<JobStatus, string> = { draft: 'Borrador', published: 'Publicada', closed: 'Cerrada', archived: 'Archivada' };
@@ -42,7 +44,7 @@ export default function PortalClient({ initialSnapshot }: { initialSnapshot: Por
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const { capabilities } = snapshot;
   const availableNavigation = navigation.filter(({ id }) =>
-    (id !== 'applications' || capabilities.viewApplications) && (id !== 'content' || capabilities.editContent));
+    (id !== 'applications' || capabilities.viewApplications) && (id !== 'content' || capabilities.editContent) && (id !== 'operations' || snapshot.user.role === 'owner'));
 
   const filteredJobs = useMemo(() => snapshot.jobs.filter((job) => {
     const matchesText = `${job.titleEs} ${job.titleEn} ${job.location}`.toLowerCase().includes(jobQuery.toLowerCase());
@@ -187,6 +189,7 @@ export default function PortalClient({ initialSnapshot }: { initialSnapshot: Por
       {notice && <div className={`portal-notice ${notice.kind}`} role="status">{notice.kind === 'success' ? <Check size={17} /> : <span>!</span>}{notice.text}<button type="button" onClick={() => setNotice(null)} aria-label="Cerrar"><X size={15} /></button></div>}
       <div className="portal-content">
         {section === 'overview' && <Overview snapshot={snapshot} onNavigate={go} onNewJob={() => setJobDraft(emptyJob())} />}
+        {section === 'operations' && snapshot.user.role === 'owner' && <OperationsPanel />}
         {section === 'jobs' && <JobsSection jobs={filteredJobs} query={jobQuery} setQuery={setJobQuery} filter={jobFilter} setFilter={setJobFilter} onEdit={(job) => setJobDraft(toEditableJob(job))} onNew={() => setJobDraft(emptyJob())} onArchive={archiveJob} busy={busy} canManage={capabilities.manageJobs} canArchive={capabilities.archiveJobs} />}
         {section === 'applications' && capabilities.viewApplications && <ApplicationsSection applications={filteredApplications} query={applicationQuery} setQuery={setApplicationQuery} filter={applicationFilter} setFilter={setApplicationFilter} onStatus={updateApplication} onResume={downloadResume} busy={busy} />}
         {section === 'content' && capabilities.editContent && <ContentSection settings={settingsDraft} setSettings={setSettingsDraft} onSave={saveSettings} onUpload={uploadImage} busy={busy} dirty={settingsDirty} />}

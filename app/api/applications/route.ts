@@ -1,4 +1,6 @@
 import { ensureDatabase, getD1, getFilesBucket, getSiteTenantId } from '@/db';
+import { withinSubmissionLimits } from '@/lib/submission-limits';
+import { notificationStatements, tryNotifications } from '@/lib/notifications';
 import { businessDate } from '@/lib/site-repository';
 import { formDataWithLimit, PayloadTooLargeError, validateBrowserMutation } from '@/lib/request-security';
 
@@ -67,7 +69,7 @@ export async function POST(request: Request) {
       .bind(tenantId, submissionKey).first<{ reference: string }>();
     if (duplicate) return json({ ok: true, reference: duplicate.reference });
 
-    if (!await withinApplicationLimits(request, database, tenantId, email)) {
+    if (!await withinSubmissionLimits(request, database, tenantId, email)) {
       return json({ error: 'Recibimos varios intentos. Espera unos minutos antes de volver a enviar.' }, 429);
     }
 
@@ -94,13 +96,28 @@ export async function POST(request: Request) {
     const date = new Date();
     const reference = `MSL-${date.toISOString().slice(0, 10).replaceAll('-', '')}-${id.slice(0, 6).toUpperCase()}`;
     const now = date.toISOString();
-    await database.prepare(`INSERT INTO applications (
+    try {
+      await database.batch([database.prepare(`INSERT INTO applications (
       id, reference, submission_key, tenant_id, job_id, role_interest, full_name, phone,
       email, city, availability, message, resume_key, resume_filename, status,
       source, consent_at, created_at, updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', 'website', ?, ?, ?)`)
       .bind(id, reference, submissionKey, tenantId, jobId, roleInterest, fullName, phone,
-        email, city, availability, message, resumeKey, resumeFilename, now, now, now).run();
+        email, city, availability, message, resumeKey, resumeFilename, now, now, now),
+      ...notificationStatements(tenantId, id, reference, 'application', email, value(form, 'language', 2), now),
+      ]);
+    } catch (error) {
+      const raced = await database.prepare('SELECT id, reference FROM applications WHERE tenant_id = ? AND submission_key = ? LIMIT 1')
+        .bind(tenantId, submissionKey).first<{ id: string; reference: string }>();
+      if (!raced) throw error;
+      if (resumeKey && raced.id !== id) {
+        try { await getFilesBucket().delete(resumeKey); } catch { /* unreferenced file cleanup */ }
+      }
+      resumeKey = null;
+      return json({ ok: true, reference: raced.reference });
+    }
+    resumeKey = null; // The committed application now owns the uploaded file.
+    await tryNotifications(tenantId, id);
 
     return json({ ok: true, reference }, 201);
   } catch (error) {
@@ -111,58 +128,4 @@ export async function POST(request: Request) {
     console.error('application_submission_failed', error);
     return json({ error: 'No pudimos guardar tu solicitud. Inténtalo nuevamente.' }, 500);
   }
-}
-
-async function withinApplicationLimits(request: Request, database: D1Database, tenantId: string, email: string) {
-  const address = (request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown').trim();
-  const now = Date.now();
-  const checks = [
-    { scope: 'ip-15m', identity: address, bucketMs: 15 * 60_000, limit: 8 },
-    { scope: 'ip-day', identity: address, bucketMs: 24 * 60 * 60_000, limit: 30 },
-    { scope: 'email-day', identity: email, bucketMs: 24 * 60 * 60_000, limit: 5 },
-    { scope: 'tenant-day', identity: tenantId, bucketMs: 24 * 60 * 60_000, limit: 500 },
-  ];
-
-  const candidates = await Promise.all(checks.map(async (check) => {
-    const bucket = Math.floor(now / check.bucketMs);
-    const key = await digestKey(`${tenantId}:${check.scope}:${check.identity}:${bucket}`);
-    return {
-      key,
-      maxHits: check.limit,
-      expiresAt: new Date((bucket + 1) * check.bucketMs).toISOString(),
-    };
-  }));
-  const valueRows = candidates.map(() => '(?, ?, ?, ?)').join(', ');
-  const nowIso = new Date(now).toISOString();
-  const bindings = candidates.flatMap((candidate) => [candidate.key, candidate.maxHits, candidate.expiresAt, nowIso]);
-  const reservation = await database.prepare(`WITH candidates(key, max_hits, expires_at, updated_at) AS (
-      VALUES ${valueRows}
-    ), eligible AS (
-      SELECT 1 AS allowed
-      WHERE NOT EXISTS (
-        SELECT 1 FROM candidates AS candidate
-        LEFT JOIN rate_limits AS current ON current.key = candidate.key
-        WHERE COALESCE(current.hits, 0) >= candidate.max_hits
-      )
-    )
-    INSERT INTO rate_limits (key, hits, expires_at, updated_at)
-    SELECT candidate.key, 1, candidate.expires_at, candidate.updated_at
-    FROM candidates AS candidate CROSS JOIN eligible
-    WHERE 1
-    ON CONFLICT(key) DO UPDATE SET
-      hits = rate_limits.hits + 1,
-      expires_at = excluded.expires_at,
-      updated_at = excluded.updated_at
-    RETURNING key, hits`).bind(...bindings).all<{ key: string; hits: number }>();
-  if (reservation.results.length !== candidates.length) return false;
-
-  if (Math.random() < 0.02) {
-    await database.prepare('DELETE FROM rate_limits WHERE expires_at < ?').bind(new Date(now).toISOString()).run();
-  }
-  return true;
-}
-
-async function digestKey(value: string) {
-  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }

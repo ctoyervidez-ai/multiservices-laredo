@@ -18,6 +18,7 @@ export default function ApplicationForm({ job, language }: { job: PublicJob; lan
     const form = new FormData(event.currentTarget);
     if (!startedAt.current) startedAt.current = Date.now() - 1500;
     if (!submissionKey.current) submissionKey.current = crypto.randomUUID();
+    form.set('language', language);
     form.set('jobId', job.id);
     form.set('role', es ? job.titleEs : job.titleEn);
     form.set('startedAt', String(startedAt.current));
@@ -41,6 +42,7 @@ export default function ApplicationForm({ job, language }: { job: PublicJob; lan
     <label>{es ? 'Mensaje adicional' : 'Additional message'}<textarea name="message" rows={4} maxLength={1200} /></label>
     <label className="resume-upload"><FileText size={22} /><span><strong>{es ? 'Adjunta tu CV' : 'Attach your résumé'}</strong><small>PDF · {es ? 'máximo' : 'maximum'} 8 MB</small></span><input name="resume" type="file" accept="application/pdf,.pdf" /></label>
     <label className="application-consent"><input name="consent" type="checkbox" value="yes" required /><span>{es ? 'Autorizo a Multiservices Laredo a usar estos datos para evaluar mi solicitud y contactarme.' : 'I authorize Multiservices Laredo to use this information to evaluate my application and contact me.'}</span></label>
+    <Link href="/privacidad">{es ? 'Aviso de privacidad' : 'Privacy notice'}</Link>
     <input className="application-honeypot" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
     {state.kind === 'error' && <p className="application-error" role="alert">{state.message}</p>}
     <button type="submit" disabled={state.kind === 'sending'}>{state.kind === 'sending' ? <><LoaderCircle className="spin" size={18} />{es ? 'Enviando…' : 'Submitting…'}</> : <>{es ? 'Enviar solicitud' : 'Submit application'}<Send size={17} /></>}</button>
