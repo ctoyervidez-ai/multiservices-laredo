@@ -5,8 +5,22 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1787876002406,
-      "tag": "0000_long_spirit",
+      "when": 1788384249229,
+      "tag": "0000_grey_sphinx",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788385402479,
+      "tag": "0001_pale_the_hand",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788388734543,
+      "tag": "0002_married_gorgon",
       "breakpoints": true
     }
   ]
