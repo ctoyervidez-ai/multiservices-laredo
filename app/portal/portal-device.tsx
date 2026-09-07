@@ -1,0 +1,7 @@
+'use client';
+import { useEffect,useState } from 'react';
+type InstallEvent=Event&{prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
+export default function PortalDevice(){const [online,setOnline]=useState(true),[install,setInstall]=useState<InstallEvent|null>(null),[help,setHelp]=useState(false);
+  useEffect(()=>{const change=()=>setOnline(navigator.onLine);const prompt=(e:Event)=>{e.preventDefault();setInstall(e as InstallEvent);};window.addEventListener('online',change);window.addEventListener('offline',change);window.addEventListener('beforeinstallprompt',prompt);if('serviceWorker'in navigator)void navigator.serviceWorker.register('/portal-sw.js',{scope:'/portal'}).catch(()=>{});return()=>{window.removeEventListener('online',change);window.removeEventListener('offline',change);window.removeEventListener('beforeinstallprompt',prompt);};},[]);
+  return <div className="portal-device">{!online&&<p role="alert">Sin conexión. Tus cambios no se guardarán hasta que recuperes internet.</p>}<button className="portal-secondary" onClick={async()=>{if(install){await install.prompt();await install.userChoice;setInstall(null);}else setHelp(!help);}}>Añadir al inicio</button>{help&&<p>En iPhone o iPad: abre el portal en Safari, toca Compartir y Añadir a pantalla de inicio. En Android o computadora: abre el menú del navegador y busca Instalar aplicación o Añadir a pantalla de inicio. La opción depende del navegador. Necesitas conexión para trabajar.</p>}</div>;
+}

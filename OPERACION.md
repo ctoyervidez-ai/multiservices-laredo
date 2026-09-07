@@ -50,3 +50,22 @@ Aplicar la nueva migración `0003_outstanding_white_tiger.sql` mediante Sites an
 Para pruebas integrales locales, configurar una base de datos D1 local con todas las migraciones, almacenamiento R2 local y secretos de autenticación **exclusivos de prueba**. El flujo de prueba espera el código `Local-test-activation-2026-only`, una fecha futura de expiración y correo deshabilitado. Nunca reutilizar estos valores en producción. El arranque local original crea tablas históricas; las nuevas tablas se crean con las migraciones, no al atender solicitudes.
 
 Se probaron localmente: crear/publicar/cerrar vacante, solicitud con CV, descarga autenticada y bloqueo anónimo, cambio de estado, folio de empresa, reenvío sin duplicar, consulta de resultados, cierre de sesión y comportamiento sin correo. Los tests de correo simulan el proveedor; no certifican entrega real a una bandeja de entrada.
+
+## Equipo, edición y dispositivos
+
+- Equipo y actividad: el administrador invita editores o reclutadores, modifica permisos y suspende accesos. Las cuentas administradoras están protegidas. Cada invitación funciona una sola vez, vence en 48 horas y se comparte manualmente; no requiere proveedor de correo. Comparte el enlace únicamente con su destinatario.
+- Servicios y textos: buscar y editar textos de la página principal en español e inglés. Portada principal, contacto y fotografías permanecen en Contenido y fotos. Los textos propios de las páginas legales y de la interfaz no forman parte de este editor.
+- Los cambios se guardan en D1, compartidos por todos los dispositivos. El portal consulta actualizaciones al recuperar el foco y cada 60 segundos mientras está visible; pausa la actualización del formulario principal durante la edición. No es sincronización instantánea.
+- Si otra persona guardó primero, la edición anterior se rechaza para evitar sobrescrituras. Recarga los datos y vuelve a aplicar los cambios pertinentes. Hay avisos antes de abandonar formularios con cambios.
+- Añadir al inicio ofrece instalación cuando el navegador la permite o instrucciones para iPhone/Android. Requiere HTTPS en producción. El portal necesita internet; no se almacenan datos privados ni CV en la caché del dispositivo. No incluye notificaciones push.
+- Se verificaron pantallas con anchos de 375, 768 y 1280 píxeles en el navegador. La instalación en dispositivos físicos todavía requiere una comprobación después de publicar.
+
+## Base de datos y gasto
+
+Se conserva Cloudflare D1 (SQLite) para registros y R2 para fotos y documentos. No hace falta contratar otra base de datos ni migrar a Supabase. La configuración actual está gestionada mediante Sites; no se ha comprobado una factura ni se garantiza que el alojamiento completo sea gratuito.
+
+Como referencia para una cuenta directa de Cloudflare, consultada el 7 de septiembre de 2026: D1 Free incluye 5 millones de filas leídas/día, 100.000 escritas/día y 5 GB de almacenamiento total de cuenta. R2 Standard incluye 10 GB-mes, un millón de operaciones clase A y diez millones clase B al mes. Son límites de uso, no capacidad ilimitada. No se contrató ningún plan ni se configuraron pagos.
+
+Fuentes: [D1](https://developers.cloudflare.com/d1/platform/pricing/) y [R2](https://developers.cloudflare.com/r2/pricing/).
+
+Para esta entrega se deben aplicar también `0004_awesome_hex.sql` y todas las migraciones anteriores pendientes mediante Sites. La nueva migración agrega invitaciones y textos editables, sin borrar registros. Ejecutar las pruebas de escritura local separadas de las pruebas de enlaces: cambian temporalmente las vacantes públicas de prueba.

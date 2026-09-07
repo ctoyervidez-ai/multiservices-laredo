@@ -8,11 +8,13 @@ import {
 } from 'lucide-react';
 import Link from '@/app/site-link';
 import OperationsPanel from './operations-panel';
-import { FormEvent, useMemo, useState } from 'react';
+import TeamPanel from './team-panel';
+import TextEditor from './text-editor';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import type { ApplicationRecord, ApplicationStatus, JobRecord, JobStatus, PortalSnapshot, SiteSettings } from '@/lib/portal-types';
 
-type Section = 'overview' | 'jobs' | 'applications' | 'content' | 'operations';
-type EditableJob = Omit<JobRecord, 'createdAt' | 'updatedAt'>;
+type Section = 'overview' | 'jobs' | 'applications' | 'content' | 'operations' | 'team' | 'texts';
+type EditableJob = Omit<JobRecord, 'createdAt' | 'updatedAt'> & { updatedAt?: string };
 
 const navigation: Array<{ id: Section; label: string; icon: typeof LayoutDashboard }> = [
   { id: 'overview', label: 'Inicio', icon: LayoutDashboard },
@@ -20,6 +22,8 @@ const navigation: Array<{ id: Section; label: string; icon: typeof LayoutDashboa
   { id: 'applications', label: 'Candidatos', icon: UsersRound },
   { id: 'content', label: 'Contenido y fotos', icon: ImageIcon },
   { id: 'operations', label: 'Empresas y resultados', icon: CircleGauge },
+  { id: 'texts', label: 'Servicios y textos', icon: FileText },
+  { id: 'team', label: 'Equipo y actividad', icon: UsersRound },
 ];
 
 const jobLabels: Record<JobStatus, string> = { draft: 'Borrador', published: 'Publicada', closed: 'Cerrada', archived: 'Archivada' };
@@ -43,8 +47,10 @@ export default function PortalClient({ initialSnapshot }: { initialSnapshot: Por
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const { capabilities } = snapshot;
+  const [syncStatus, setSyncStatus] = useState('Información cargada');
+  const [otherDirty,setOtherDirty]=useState(false);
   const availableNavigation = navigation.filter(({ id }) =>
-    (id !== 'applications' || capabilities.viewApplications) && (id !== 'content' || capabilities.editContent) && (id !== 'operations' || snapshot.user.role === 'owner'));
+    (id !== 'applications' || capabilities.viewApplications) && (id !== 'content' || capabilities.editContent) && (!['operations','team'].includes(id) || snapshot.user.role === 'owner') && (id !== 'texts' || capabilities.editContent));
 
   const filteredJobs = useMemo(() => snapshot.jobs.filter((job) => {
     const matchesText = `${job.titleEs} ${job.titleEn} ${job.location}`.toLowerCase().includes(jobQuery.toLowerCase());
@@ -56,6 +62,33 @@ export default function PortalClient({ initialSnapshot }: { initialSnapshot: Por
     return matchesText && (applicationFilter === 'all' || application.status === applicationFilter);
   }), [snapshot.applications, applicationFilter, applicationQuery]);
   const settingsDirty = useMemo(() => settingsFields.some((field) => settingsDraft[field] !== snapshot.settings[field]), [settingsDraft, snapshot.settings]);
+
+  useEffect(() => {
+    if (busy || settingsDirty || jobDraft) return;
+    let active = true, running = false;
+    const refresh = async () => {
+      if (running || document.visibilityState !== 'visible') return;
+      running = true;
+      try {
+        const response = await fetch('/api/portal');
+        if (response.status === 401) { window.location.replace('/portal?reason=session-expired'); return; }
+        const result = await response.json() as { snapshot?: PortalSnapshot };
+        if (!response.ok || !result.snapshot) throw new Error('refresh');
+        if (active) { setSnapshot(result.snapshot); setSettingsDraft(result.snapshot.settings); setSyncStatus('Actualizado ' + new Date().toLocaleTimeString('es-US', { hour: '2-digit', minute: '2-digit' })); }
+      } catch { if (active) setSyncStatus('No pudimos actualizar. Revisa tu conexión.'); }
+      finally { running = false; }
+    };
+    const timer = window.setInterval(() => void refresh(), 60000);
+    const focused = () => void refresh();
+    window.addEventListener('focus', focused);
+    document.addEventListener('visibilitychange', focused);
+    return () => { active = false; clearInterval(timer); window.removeEventListener('focus', focused); document.removeEventListener('visibilitychange', focused); };
+  }, [busy, settingsDirty, jobDraft]);
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => { if (settingsDirty || jobDraft) { event.preventDefault(); event.returnValue = ''; } };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [settingsDirty, jobDraft]);
 
   async function portalAction(payload: Record<string, unknown>, progress: string, success: string, syncSettings = false) {
     setBusy(progress); setNotice(null);
@@ -86,11 +119,11 @@ export default function PortalClient({ initialSnapshot }: { initialSnapshot: Por
 
   async function archiveJob(job: JobRecord) {
     if (!window.confirm(`¿Archivar “${job.titleEs}”? Ya no aparecerá en las listas del portal.`)) return;
-    await portalAction({ action: 'archive', id: job.id }, `archive-${job.id}`, 'Vacante archivada.');
+    await portalAction({ action: 'archive', id: job.id, expectedUpdatedAt: job.updatedAt }, `archive-${job.id}`, 'Vacante archivada.');
   }
 
   async function updateApplication(application: ApplicationRecord, status: ApplicationStatus) {
-    await portalAction({ action: 'application_status', id: application.id, status }, `application-${application.id}`, 'Estado del candidato actualizado.');
+    await portalAction({ action: 'application_status', id: application.id, status, expectedUpdatedAt: application.updatedAt }, `application-${application.id}`, 'Estado del candidato actualizado.');
   }
 
   async function downloadResume(application: ApplicationRecord) {
@@ -127,6 +160,7 @@ export default function PortalClient({ initialSnapshot }: { initialSnapshot: Por
       const form = new FormData();
       form.set('file', optimized);
       form.set('slot', slot);
+      form.set('expectedMediaId', snapshot.settings[`${slot === 'hero' ? 'hero' : slot === 'transport' ? 'transport' : 'operations'}MediaId`] || '');
       form.set('altEs', slot === 'hero' ? 'Equipo de Multiservices Laredo en operación' : slot === 'transport' ? 'Transporte coordinado para colaboradores' : 'Equipo operativo trabajando en un proyecto');
       form.set('altEn', slot === 'hero' ? 'Multiservices Laredo team at work' : slot === 'transport' ? 'Coordinated employee transportation' : 'Operations team working on a project');
       const request = await fetch('/api/portal/media', { method: 'POST', body: form });
@@ -171,6 +205,7 @@ export default function PortalClient({ initialSnapshot }: { initialSnapshot: Por
   }
 
   const go = (next: Section) => {
+    if ((settingsDirty || jobDraft || otherDirty) && !window.confirm('Tienes cambios sin guardar. ¿Cambiar de sección?')) return;
     setSection(next);
     setMobileMenu(false);
     setNotice(null);
@@ -187,7 +222,10 @@ export default function PortalClient({ initialSnapshot }: { initialSnapshot: Por
     <section className="portal-workspace">
       <header className="portal-topbar"><button type="button" className="portal-menu-button" onClick={() => setMobileMenu(true)} aria-label="Abrir menú"><Menu size={21} /></button><div><span>{snapshot.tenant.name}</span></div><div className="portal-user"><span>{initials(snapshot.user.displayName)}</span><div><b>{snapshot.user.displayName}</b><small>{snapshot.user.role === 'owner' ? 'Administrador' : snapshot.user.role === 'editor' ? 'Editor de contenido' : 'Reclutamiento'}</small></div></div></header>
       {notice && <div className={`portal-notice ${notice.kind}`} role="status">{notice.kind === 'success' ? <Check size={17} /> : <span>!</span>}{notice.text}<button type="button" onClick={() => setNotice(null)} aria-label="Cerrar"><X size={15} /></button></div>}
-      <div className="portal-content">
+      <div className="portal-content"><p className="portal-sync-status" role="status">{settingsDirty || jobDraft ? 'Editando · actualización automática en pausa' : syncStatus}</p>
+        {section === 'overview' && snapshot.user.role === 'owner' && <TeamPanel summary />}
+        {section === 'team' && snapshot.user.role === 'owner' && <TeamPanel />}
+        {section === 'texts' && capabilities.editContent && <TextEditor onDirty={setOtherDirty} />}
         {section === 'overview' && <Overview snapshot={snapshot} onNavigate={go} onNewJob={() => setJobDraft(emptyJob())} />}
         {section === 'operations' && snapshot.user.role === 'owner' && <OperationsPanel />}
         {section === 'jobs' && <JobsSection jobs={filteredJobs} query={jobQuery} setQuery={setJobQuery} filter={jobFilter} setFilter={setJobFilter} onEdit={(job) => setJobDraft(toEditableJob(job))} onNew={() => setJobDraft(emptyJob())} onArchive={archiveJob} busy={busy} canManage={capabilities.manageJobs} canArchive={capabilities.archiveJobs} />}
@@ -195,7 +233,7 @@ export default function PortalClient({ initialSnapshot }: { initialSnapshot: Por
         {section === 'content' && capabilities.editContent && <ContentSection settings={settingsDraft} setSettings={setSettingsDraft} onSave={saveSettings} onUpload={uploadImage} busy={busy} dirty={settingsDirty} />}
       </div>
     </section>
-    {jobDraft && capabilities.manageJobs && <JobEditor job={jobDraft} setJob={setJobDraft} onClose={() => setJobDraft(null)} onSave={saveJob} busy={busy === 'job'} />}
+    {jobDraft && capabilities.manageJobs && <JobEditor job={jobDraft} setJob={setJobDraft} onClose={() => { if (!busy && window.confirm('¿Cerrar el editor? Los cambios sin guardar se perderán.')) setJobDraft(null); }} onSave={saveJob} busy={busy === 'job'} />}
   </main>;
 }
 
@@ -251,7 +289,14 @@ function PhotoSlot({ title, hint, url, busy, onFile }: { title: string; hint: st
 
 function JobEditor({ job, setJob, onClose, onSave, busy }: { job: EditableJob; setJob: (job: EditableJob) => void; onClose: () => void; onSave: (event: FormEvent<HTMLFormElement>) => void; busy: boolean }) {
   const set = <K extends keyof EditableJob>(field: K, value: EditableJob[K]) => setJob({ ...job, [field]: value });
-  return <div className="portal-modal-backdrop" role="presentation"><section className="job-editor-modal" role="dialog" aria-modal="true" aria-labelledby="job-editor-title"><header><div><p>{job.id ? 'Editar vacante' : 'Nueva vacante'}</p><h2 id="job-editor-title">{job.titleEs || 'Información del puesto'}</h2></div><button type="button" onClick={onClose} aria-label="Cerrar editor"><X size={21} /></button></header><form onSubmit={onSave}><div className="job-editor-body"><fieldset><legend><span>01</span>Información básica</legend><div className="editor-grid"><label>Título en español<input value={job.titleEs} onChange={(event) => set('titleEs', event.target.value)} maxLength={120} autoFocus required /></label><label>Title in English<input value={job.titleEn} onChange={(event) => set('titleEn', event.target.value)} maxLength={120} required /></label><label className="wide">Resumen en español<textarea rows={3} value={job.summaryEs} onChange={(event) => set('summaryEs', event.target.value)} maxLength={300} /></label><label className="wide">Summary in English<textarea rows={3} value={job.summaryEn} onChange={(event) => set('summaryEn', event.target.value)} maxLength={300} /></label></div></fieldset><fieldset><legend><span>02</span>Condiciones</legend><div className="editor-grid three"><label>Ubicación<input value={job.location} onChange={(event) => set('location', event.target.value)} /></label><label>Turno<input value={job.shift} onChange={(event) => set('shift', event.target.value)} /></label><label>Tipo de empleo<select value={job.employmentType} onChange={(event) => set('employmentType', event.target.value)}><option>Temporal / proyecto</option><option>Temp-to-hire</option><option>Tiempo completo</option><option>Medio tiempo</option><option>Contratación directa</option></select></label><label>Sueldo mínimo<input type="number" min="0" step="0.25" value={job.payMin ?? ''} onChange={(event) => set('payMin', event.target.value ? Number(event.target.value) : null)} /></label><label>Sueldo máximo<input type="number" min="0" step="0.25" value={job.payMax ?? ''} onChange={(event) => set('payMax', event.target.value ? Number(event.target.value) : null)} /></label><label>Vacantes disponibles<input type="number" min="1" max="500" value={job.openings} onChange={(event) => set('openings', Number(event.target.value))} /></label><label>Fecha de cierre<input type="date" value={job.closesAt?.slice(0, 10) || ''} onChange={(event) => set('closesAt', event.target.value || null)} /></label><label className="check-field"><input type="checkbox" checked={job.featured} onChange={(event) => set('featured', event.target.checked)} /><span>Mostrar como destacada</span></label></div></fieldset><fieldset><legend><span>03</span>Descripción y requisitos</legend><div className="editor-grid"><label className="wide">Descripción en español<textarea rows={5} value={job.descriptionEs} onChange={(event) => set('descriptionEs', event.target.value)} maxLength={5000} /></label><label className="wide">Description in English<textarea rows={5} value={job.descriptionEn} onChange={(event) => set('descriptionEn', event.target.value)} maxLength={5000} /></label><label>Requisitos en español <small>Uno por línea</small><textarea rows={6} value={job.requirementsEs} onChange={(event) => set('requirementsEs', event.target.value)} maxLength={3000} /></label><label>Requirements in English <small>One per line</small><textarea rows={6} value={job.requirementsEn} onChange={(event) => set('requirementsEn', event.target.value)} maxLength={3000} /></label></div></fieldset></div><footer><button type="button" className="portal-secondary" onClick={onClose}>Cancelar</button><label>Estado<select value={job.status} onChange={(event) => set('status', event.target.value as JobStatus)}><option value="draft">Guardar como borrador</option><option value="published">Publicar en la página</option><option value="closed">Cerrar vacante</option></select></label><button type="submit" className="portal-primary" disabled={busy}>{busy ? <LoaderCircle className="spin" size={18} /> : <Save size={18} />}{job.status === 'published' ? 'Guardar y publicar' : 'Guardar vacante'}</button></footer></form></section></div>;
+  return <div className="portal-modal-backdrop" role="presentation"><section className="job-editor-modal" role="dialog" aria-modal="true" aria-labelledby="job-editor-title" onKeyDown={(event) => {
+    if (event.key === 'Escape') { event.preventDefault(); if (!busy) onClose(); }
+    if (event.key !== 'Tab') return;
+    const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]')).filter(item => item.getClientRects().length > 0);
+    const first = items[0], last = items[items.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  }}><header><div><p>{job.id ? 'Editar vacante' : 'Nueva vacante'}</p><h2 id="job-editor-title">{job.titleEs || 'Información del puesto'}</h2></div><button type="button" onClick={onClose} aria-label="Cerrar editor"><X size={21} /></button></header><form onSubmit={onSave}><div className="job-editor-body"><fieldset><legend><span>01</span>Información básica</legend><div className="editor-grid"><label>Título en español<input value={job.titleEs} onChange={(event) => set('titleEs', event.target.value)} maxLength={120} autoFocus required /></label><label>Title in English<input value={job.titleEn} onChange={(event) => set('titleEn', event.target.value)} maxLength={120} required /></label><label className="wide">Resumen en español<textarea rows={3} value={job.summaryEs} onChange={(event) => set('summaryEs', event.target.value)} maxLength={300} /></label><label className="wide">Summary in English<textarea rows={3} value={job.summaryEn} onChange={(event) => set('summaryEn', event.target.value)} maxLength={300} /></label></div></fieldset><fieldset><legend><span>02</span>Condiciones</legend><div className="editor-grid three"><label>Ubicación<input value={job.location} onChange={(event) => set('location', event.target.value)} /></label><label>Turno<input value={job.shift} onChange={(event) => set('shift', event.target.value)} /></label><label>Tipo de empleo<select value={job.employmentType} onChange={(event) => set('employmentType', event.target.value)}><option>Temporal / proyecto</option><option>Temp-to-hire</option><option>Tiempo completo</option><option>Medio tiempo</option><option>Contratación directa</option></select></label><label>Sueldo mínimo<input type="number" min="0" step="0.25" value={job.payMin ?? ''} onChange={(event) => set('payMin', event.target.value ? Number(event.target.value) : null)} /></label><label>Sueldo máximo<input type="number" min="0" step="0.25" value={job.payMax ?? ''} onChange={(event) => set('payMax', event.target.value ? Number(event.target.value) : null)} /></label><label>Vacantes disponibles<input type="number" min="1" max="500" value={job.openings} onChange={(event) => set('openings', Number(event.target.value))} /></label><label>Fecha de cierre<input type="date" value={job.closesAt?.slice(0, 10) || ''} onChange={(event) => set('closesAt', event.target.value || null)} /></label><label className="check-field"><input type="checkbox" checked={job.featured} onChange={(event) => set('featured', event.target.checked)} /><span>Mostrar como destacada</span></label></div></fieldset><fieldset><legend><span>03</span>Descripción y requisitos</legend><div className="editor-grid"><label className="wide">Descripción en español<textarea rows={5} value={job.descriptionEs} onChange={(event) => set('descriptionEs', event.target.value)} maxLength={5000} /></label><label className="wide">Description in English<textarea rows={5} value={job.descriptionEn} onChange={(event) => set('descriptionEn', event.target.value)} maxLength={5000} /></label><label>Requisitos en español <small>Uno por línea</small><textarea rows={6} value={job.requirementsEs} onChange={(event) => set('requirementsEs', event.target.value)} maxLength={3000} /></label><label>Requirements in English <small>One per line</small><textarea rows={6} value={job.requirementsEn} onChange={(event) => set('requirementsEn', event.target.value)} maxLength={3000} /></label></div></fieldset></div><footer><button type="button" className="portal-secondary" onClick={onClose}>Cancelar</button><label>Estado<select value={job.status} onChange={(event) => set('status', event.target.value as JobStatus)}><option value="draft">Guardar como borrador</option><option value="published">Publicar en la página</option><option value="closed">Cerrar vacante</option></select></label><button type="submit" className="portal-primary" disabled={busy}>{busy ? <LoaderCircle className="spin" size={18} /> : <Save size={18} />}{job.status === 'published' ? 'Guardar y publicar' : 'Guardar vacante'}</button></footer></form></section></div>;
 }
 
 function Status({ kind, label }: { kind: string; label: string }) { return <span className={`portal-status ${kind}`}><i />{label}</span>; }
@@ -268,7 +313,7 @@ function emptyJob(): EditableJob {
 }
 function toEditableJob(job: JobRecord): EditableJob {
   return {
-    id: job.id, slug: job.slug, titleEs: job.titleEs, titleEn: job.titleEn,
+    id: job.id, updatedAt: job.updatedAt, slug: job.slug, titleEs: job.titleEs, titleEn: job.titleEn,
     summaryEs: job.summaryEs, summaryEn: job.summaryEn, descriptionEs: job.descriptionEs,
     descriptionEn: job.descriptionEn, requirementsEs: job.requirementsEs, requirementsEn: job.requirementsEn,
     location: job.location, shift: job.shift, employmentType: job.employmentType, payMin: job.payMin,

@@ -1,6 +1,18 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
+export const portalInvites = sqliteTable('portal_invites', {
+  id: text('id').primaryKey(), tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  email: text('email').notNull(), role: text('role').notNull(), tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: text('expires_at').notNull(), usedAt: text('used_at'), createdAt: text('created_at').notNull(),
+}, t => [index('idx_invites_tenant_email').on(t.tenantId, t.email)]);
+
+export const siteContent = sqliteTable('site_content', {
+  tenantId: text('tenant_id').primaryKey().references(() => tenants.id),
+  values: text('values_json').notNull().default('{}'), revision: integer('revision').notNull().default(0),
+  updatedAt: text('updated_at').notNull(), updatedBy: text('updated_by'),
+});
+
 export const inquiries = sqliteTable('inquiries', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull().references(() => tenants.id),

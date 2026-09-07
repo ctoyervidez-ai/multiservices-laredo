@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 
-type Inquiry = { id: string; reference: string; fullName: string; company: string; phone: string; email: string; need: string; message: string; status: string; createdAt: string };
+type Inquiry = { id: string; reference: string; fullName: string; company: string; phone: string; email: string; need: string; message: string; status: string; updatedAt: string; createdAt: string };
 type Operations = { inquiries: Inquiry[]; metrics: { event: string; total: number }[]; submissions: { kind: string; total: number }[]; notifications: { status: string; total: number }[]; emailConfigured: boolean; since: string };
 const labels: Record<string, string> = { new: 'Nuevo', contacted: 'Contactado', proposal: 'Propuesta enviada', won: 'Cliente', lost: 'No continúa', archived: 'Archivado' };
 
@@ -26,6 +26,13 @@ export default function OperationsPanel() {
     }).catch(e => { if (active) setError(e.message); });
     return () => { active = false; };
   }, []);
+  useEffect(() => {
+    if (busy) return;
+    const update = () => { if (document.visibilityState === 'visible') void refresh().catch(e => setError(e.message)); };
+    const timer = window.setInterval(update, 60000);
+    window.addEventListener('focus', update);
+    return () => { clearInterval(timer); window.removeEventListener('focus', update); };
+  }, [busy, refresh]);
   const action = async (payload: object) => {
     setBusy(true); setError('');
     try {
@@ -49,7 +56,7 @@ export default function OperationsPanel() {
       </section>
       <section className="portal-panel operations-panel"><h2>Prospectos de empresas</h2><p>Las 200 solicitudes más recientes. Cambia su estado conforme avances.</p><div className="operations-filters"><label>Buscar<input value={query} onChange={e => setQuery(e.target.value)} placeholder="Empresa, contacto o folio" /></label><label>Estado<select value={filter} onChange={e => setFilter(e.target.value)}><option value="all">Todos</option>{Object.entries(labels).map(([id, label]) => <option value={id} key={id}>{label}</option>)}</select></label></div>
         {!data.inquiries.length && <p>Aún no hay solicitudes de empresas.</p>}
-        {data.inquiries.filter(x => (filter === 'all' || x.status === filter) && `${x.company} ${x.fullName} ${x.reference} ${x.email}`.toLowerCase().includes(query.toLowerCase())).map(item => <article className="inquiry-card" key={item.id}><div><h3>{item.company}</h3><small>{item.reference} · {new Date(item.createdAt).toLocaleDateString('es-US')}</small></div><p>{item.fullName}</p><p className="preserve-lines">{item.need}</p>{item.message && <p className="preserve-lines">{item.message}</p>}<div className="operations-contact"><a href={`mailto:${item.email}`}>{item.email}</a><a href={`tel:${item.phone.replace(/[^+\d]/g, '')}`}>{item.phone}</a></div><label>Seguimiento<select value={item.status} disabled={busy} onChange={e => void action({ action: 'inquiry_status', id: item.id, status: e.target.value })}>{Object.entries(labels).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label></article>)}
+        {data.inquiries.filter(x => (filter === 'all' || x.status === filter) && `${x.company} ${x.fullName} ${x.reference} ${x.email}`.toLowerCase().includes(query.toLowerCase())).map(item => <article className="inquiry-card" key={item.id}><div><h3>{item.company}</h3><small>{item.reference} · {new Date(item.createdAt).toLocaleDateString('es-US')}</small></div><p>{item.fullName}</p><p className="preserve-lines">{item.need}</p>{item.message && <p className="preserve-lines">{item.message}</p>}<div className="operations-contact"><a href={`mailto:${item.email}`}>{item.email}</a><a href={`tel:${item.phone.replace(/[^+\d]/g, '')}`}>{item.phone}</a></div><label>Seguimiento<select value={item.status} disabled={busy} onChange={e => void action({ action: 'inquiry_status', id: item.id, expectedUpdatedAt: item.updatedAt, status: e.target.value })}>{Object.entries(labels).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label></article>)}
       </section>
     </>}
   </>;

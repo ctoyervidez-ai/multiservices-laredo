@@ -24,6 +24,42 @@ const DEVELOPMENT_COOKIE = 'msl_portal_dev';
 
 const encoder = new TextEncoder();
 
+export async function createPortalInvite(tenantId: string, emailInput: unknown, role: string) {
+  const email = normalizeEmail(emailInput);
+  if (!['editor','recruiter'].includes(role)) throw new PortalAuthError('invalid_role','Selecciona un permiso válido.',400);
+  const db=getD1();
+  if(await db.prepare('SELECT id FROM portal_users WHERE tenant_id = ? AND email = ?').bind(tenantId,email).first()) throw new PortalAuthError('already_exists','Este correo ya tiene una cuenta. Adminístrala desde la lista.',409);
+  const token=toBase64Url(randomBytes(32)), id=crypto.randomUUID(), now=new Date().toISOString(), expires=new Date(Date.now()+48*3600_000).toISOString();
+  const tokenHash=await keyedDigest(`invite:${tenantId}:${token}`);
+  await db.batch([
+    db.prepare('UPDATE portal_invites SET used_at = ? WHERE tenant_id = ? AND email = ? AND used_at IS NULL').bind(now,tenantId,email),
+    db.prepare('INSERT INTO portal_invites (id,tenant_id,email,role,token_hash,expires_at,created_at) VALUES (?,?,?,?,?,?,?)').bind(id,tenantId,email,role,tokenHash,expires,now),
+  ]);
+  return {id,url:`${SITE_ORIGIN}/portal/activar#token=${token}`,expiresAt:expires};
+}
+
+export async function acceptPortalInvite(request:Request,input:{token?:unknown;displayName?:unknown;password?:unknown;confirmPassword?:unknown}) {
+  assertSecureAuthTransport(request);await ensureDatabase();
+  const db=getD1(),tenant=getSiteTenantId();
+  if(!await reserveAuthLimits(request,db,tenant,'login','invite')) throw new PortalAuthError('rate_limited','Espera 15 minutos antes de volver a intentar.',429);
+  const token=String(input.token||'');if(!/^[A-Za-z0-9_-]{43}$/.test(token))throw new PortalAuthError('invalid_invite','El enlace no es válido o venció.',400);
+  const hash=await keyedDigest(`invite:${tenant}:${token}`),now=new Date().toISOString();
+  const invite=await db.prepare('SELECT email,role FROM portal_invites WHERE tenant_id = ? AND token_hash = ? AND used_at IS NULL AND expires_at > ?').bind(tenant,hash,now).first<{email:string;role:string}>();
+  if(!invite||!['editor','recruiter'].includes(invite.role))throw new PortalAuthError('invalid_invite','El enlace no es válido o venció.',400);
+  const name=cleanDisplayName(input.displayName),password=validatePassword(input.password);
+  if(password!==input.confirmPassword)throw new PortalAuthError('password_mismatch','Las contraseñas no coinciden.',400);
+  const salt=randomBytes(PASSWORD_SALT_BYTES),passwordHash=await derivePasswordHash(password,salt,PASSWORD_ITERATIONS),id=crypto.randomUUID();
+  const [created]=await db.batch([
+    db.prepare(`INSERT INTO portal_users (id,tenant_id,email,display_name,password_algorithm,password_iterations,password_salt_b64,password_hash_b64,pepper_version,auth_version,status,password_changed_at,created_at,updated_at)
+      SELECT ?,?,?,?, ?,?,?,?,1,1,'active',?,?,? FROM portal_invites WHERE tenant_id = ? AND token_hash = ? AND used_at IS NULL AND expires_at > ?
+      ON CONFLICT(tenant_id,email) DO NOTHING`).bind(id,tenant,invite.email,name,PASSWORD_ALGORITHM,PASSWORD_ITERATIONS,toBase64Url(salt),toBase64Url(passwordHash),now,now,now,tenant,hash,new Date().toISOString()),
+    db.prepare(`INSERT INTO memberships (id,tenant_id,user_id,email,role,created_at) SELECT ?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM portal_users WHERE id = ? AND tenant_id = ?)
+      ON CONFLICT(tenant_id,email) DO NOTHING`).bind(crypto.randomUUID(),tenant,id,invite.email,invite.role,now,id,tenant),
+    db.prepare('UPDATE portal_invites SET used_at = ? WHERE tenant_id = ? AND token_hash = ? AND used_at IS NULL').bind(now,tenant,hash),
+  ]);
+  if(!created.meta.changes)throw new PortalAuthError('invalid_invite','El enlace ya se utilizó. Inicia sesión.',409);
+}
+
 export async function requestPasswordReset(request: Request, input: { email?: unknown }) {
   assertSecureAuthTransport(request);
   const config = getEmailConfig();

@@ -1,5 +1,7 @@
 'use client';
 
+import { homeContent } from '@/lib/home-content';
+import { applyContentOverrides } from '@/lib/content-fields';
 import { SITE_ORIGIN } from '@/lib/site-origin';
 
 import { FormEvent, type CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
@@ -20,158 +22,7 @@ type PhotoName =
 const tickerItems = ['STAFFING', 'RECRUITMENT', 'WAREHOUSE', 'TEMP → HIRE', 'EQUIPMENT', 'NOM-050', 'LAREDO, TX'];
 const showcaseImages: PhotoName[] = ['service-labeling', 'ms-safety', 'service-yard-mule'];
 
-const content = {
-  es: {
-    utility: 'Staffing bilingüe + soluciones operativas',
-    availability: 'Laredo, Texas · Respuesta local',
-    nav: { services: 'Servicios', industries: 'Industrias', process: 'Proceso', jobs: 'Vacantes', faq: 'Preguntas' },
-    start: 'Empezar ahora', menu: 'Menú', close: 'Cerrar',
-    heroKicker: 'Talento operativo · Atención bilingüe',
-    heroLine1: 'La gente correcta.', heroAccent: 'En el momento', heroLine2: 'que la operación la necesita.',
-    heroLead: 'Conectamos empresas exigentes con personas listas para integrarse, aportar y mantener cada turno en movimiento.',
-    employerCta: 'Necesito personal', candidateCta: 'Busco empleo', callCta: 'Llamar',
-    heroBadge: 'Una extensión de tu equipo', heroBadgeSub: 'Staffing · Workforce · Soporte operativo', liveLabel: 'Respuesta desde Laredo',
-    signals: [['ES / EN', 'Equipo bilingüe'], ['TEMP → HIRE', 'Contratación flexible'], ['LOCAL', 'Conocimiento del mercado']],
-    metrics: [['06', 'soluciones integradas'], ['04', 'pasos con seguimiento'], ['ES/EN', 'atención bilingüe'], ['LDO', 'presencia local']],
-    purposeKicker: 'Más que cubrir una vacante',
-    purposeTitle: 'Detrás de una operación eficiente, siempre hay un buen equipo.',
-    purposeAccent: 'Nosotros te ayudamos a construirlo.',
-    audienceKicker: 'Dos caminos. Una misma promesa.', audienceTitle: 'Hacer que el siguiente movimiento sea más fácil.',
-    employer: { label: 'Para empresas', title: 'Personal preparado sin perder el ritmo.', text: 'Cuéntanos el puesto, el turno y la urgencia. Diseñamos la respuesta alrededor de tu operación.', points: ['Temporal y por proyecto', 'Temp-to-hire', 'Contratación directa'], cta: 'Solicitar talento' },
-    candidate: { label: 'Para candidatos', title: 'Una oportunidad que sí encaja contigo.', text: 'Explora posiciones operativas, administrativas y de liderazgo con acompañamiento bilingüe.', points: ['Aplicación sencilla', 'Seguimiento cercano', 'Oportunidades locales'], cta: 'Ver oportunidades' },
-    industriesKicker: 'Especialización operativa', industriesTitle: 'Conocemos el trabajo detrás de cada turno.',
-    industriesIntro: 'No se trata solo de llenar espacios. Entendemos el ritmo, la seguridad y las habilidades que cada entorno exige.',
-    industries: [
-      ['Almacén y distribución', 'Carga, descarga, inventario, surtido, empaque y operación de piso.'],
-      ['Transporte y patio', 'Yard operations, coordinación de unidades y soporte de equipo.'],
-      ['Manufactura ligera', 'Retrabajos, control de calidad, etiquetado y cuadrillas por proyecto.'],
-      ['Administración logística', 'Tráfico, atención al cliente, supervisión, seguridad y contabilidad.'],
-    ],
-    servicesKicker: 'Soluciones integrales', servicesTitle: 'Más capacidad para responder. Menos fricción para avanzar.',
-    services: [
-      ['01', 'Staffing', 'Reclutamiento y selección para posiciones temporales, por proyecto, temp-to-hire y contratación directa.'],
-      ['02', 'Cuadrillas temporales', 'Inventarios, sorteos de calidad, escaneo de series, retrabajos, carga, descarga y limpieza de patios.'],
-      ['03', 'Renta de equipo', 'Yard spotter trucks, montacargas y apoyo mientras tu equipo se encuentra en reparación.'],
-      ['04', 'Etiquetado NOM-050', 'Termosellado, adhesivo, cosido textil y plastiflecha para distintas necesidades de producto.'],
-      ['05', 'Apoyo migratorio', 'Preparación y gestión de trámites mediante un proceso claro, organizado y personalizado.'],
-      ['06', 'Eventos corporativos', 'Planeación, ambientación, montaje, inauguraciones y experiencias para equipos y empresas.'],
-    ],
-    transportKicker: 'Transporte para colaboradores',
-    transportTitle: 'Llegar al trabajo también debe ser sencillo.',
-    transportAccent: 'Rutas coordinadas para que el turno empiece a tiempo.',
-    transportText: 'Brindamos transporte seguro y confiable para colaboradores en proyectos y ubicaciones seleccionadas.',
-    transportPoints: ['Recolección desde puntos estratégicos', 'Viajes seguros y puntuales', 'Coordinación según proyecto y turno'],
-    transportAreas: 'Áreas disponibles', transportRoutes: 'Killam · Minas · Milla 13', transportCta: 'Preguntar por transporte',
-    transportMainLabel: 'Transporte seguro', transportArrivalLabel: 'Llegadas coordinadas',
-    processKicker: 'Nuestro proceso', processTitle: 'Entender primero. Conectar mejor.',
-    process: [
-      ['01', 'Conocemos', 'La operación, el ambiente, el turno y lo que hace exitosa a la posición.'],
-      ['02', 'Reclutamos', 'Buscamos y evaluamos perfiles con intención, no solo por disponibilidad.'],
-      ['03', 'Conectamos', 'Presentamos talento preparado para incorporarse con expectativas claras.'],
-      ['04', 'Acompañamos', 'Damos seguimiento después del inicio para cuidar la relación y el resultado.'],
-    ],
-    jobKicker: 'Vacante destacada · Consulta disponibilidad', jobTitle: 'Team Lead', jobPay: '$17', jobPayUnit: 'por hora · según experiencia',
-    jobText: 'Buscamos liderazgo práctico, enfoque operativo y ganas de crecer junto a un equipo en movimiento.',
-    jobTags: ['Liderazgo', 'Operaciones', 'Laredo, TX'], jobCta: 'Aplicar a esta vacante',
-    rolesTitle: 'Vacantes posibles',
-    rolesNote: 'Las posiciones y proyectos cambian según disponibilidad. Contáctanos para confirmar las vacantes actuales.',
-    roles: ['Labor general', 'Revisión / control de calidad', 'Guardia de caseta', 'Mulero / operador de patio', 'Ejecutivo de tráfico', 'CSR / servicio al cliente', 'Meseros', 'Cocineros', 'Team Lead', 'Proyectos fuera de la ciudad', 'Data Entry', 'Montacarguistas', 'Auditor de bodega', 'Plancheros', 'Asociados de almacén', 'Clerks de tráfico', 'Asistentes administrativos', 'Supervisores', 'Coordinadores de seguridad', 'Personal de contabilidad'],
-    differenceKicker: 'Por qué Multiservices', differenceTitle: 'Cerca de la operación. Cerca de las personas.',
-    differenceText: 'Soluciones visibles y concretas para responder a temporadas, nuevos proyectos y cambios de producción.',
-    showcaseSlides: [
-      ['Etiquetado NOM-050', 'Etiquetado listo para cada producto.', 'Termosellado, adhesivo, cosido textil y plastiflecha con ejecución ordenada y seguimiento cercano.', 'Equipo aplicando y escaneando etiquetas en cajas dentro de un almacén'],
-      ['Cuadrillas por proyecto', 'Más manos cuando la operación lo exige.', 'Inventarios, sorteos de calidad, retrabajos, carga, descarga y limpieza de patios según el alcance del proyecto.', 'Cuadrilla operativa reunida para coordinar un proyecto logístico'],
-      ['Renta de mulas', 'Equipo que mantiene el patio en movimiento.', 'Yard spotter trucks disponibles para apoyar la continuidad mientras una unidad se encuentra en reparación.', 'Mula de patio acoplando un remolque frente a los andenes'],
-    ],
-    faqKicker: 'Preguntas frecuentes', faqTitle: 'Información clara antes de comenzar.',
-    faqs: [
-      ['¿Qué tipos de contratación manejan?', 'Personal temporal, por proyecto, temp-to-hire y contratación directa, según la necesidad de cada empresa.'],
-      ['¿Cómo puedo aplicar a una vacante?', 'Completa el formulario breve o escríbenos por WhatsApp. El equipo te indicará los siguientes pasos y cómo compartir tu résumé.'],
-      ['¿Ofrecen transporte para empleados?', 'Está disponible en proyectos y ubicaciones seleccionadas. Confirma la disponibilidad con el equipo al aplicar.'],
-      ['¿Qué información necesita una empresa para comenzar?', 'El puesto, turno, ubicación, fecha requerida, cantidad de personas y cualquier requisito de seguridad o experiencia.'],
-    ],
-    formKicker: 'El siguiente movimiento empieza aquí', formTitle: 'Cuéntanos qué necesitas.',
-    formIntro: 'Aplica a una vacante o solicita personal en menos de dos minutos.',
-    candidateTab: 'Busco empleo', employerTab: 'Busco personal',
-    name: 'Nombre completo', phone: 'Teléfono', email: 'Correo', role: 'Puesto de interés', rolePrompt: 'Selecciona una vacante', roleOther: 'Otra posición', roleOtherLabel: 'Escribe la posición de interés', roleHelp: 'Elige una vacante posible o selecciona “Otra posición”.', company: 'Empresa', need: '¿Qué tipo de personal necesitas?', message: 'Mensaje adicional', submit: 'Preparar solicitud',
-    candidateNote: 'Puedes adjuntar tu CV en PDF. Se guardará de forma privada para el equipo autorizado.', privacy: 'Al enviar, autorizas al equipo a usar estos datos para evaluar tu solicitud y contactarte.',
-    successTitle: 'Tu solicitud está preparada.', successText: 'Revisa tus datos y elige cómo deseas contactar al equipo de Multiservices.',
-    emailCta: 'Continuar por correo', whatsappCta: 'Continuar por WhatsApp', editCta: 'Editar información',
-    footerLine1: 'Conectamos talento.', footerLine2: 'Fortalecemos operaciones.', footerContact: 'Contacto', footerVisit: 'Visítanos', footerSocial: 'Síguenos',
-    mobileApply: 'Aplicar', mobileHire: 'Contratar', mobileCall: 'Llamar',
-  },
-  en: {
-    utility: 'Bilingual staffing + operational solutions',
-    availability: 'Laredo, Texas · Local response',
-    nav: { services: 'Services', industries: 'Industries', process: 'Process', jobs: 'Open roles', faq: 'Questions' },
-    start: 'Start now', menu: 'Menu', close: 'Close',
-    heroKicker: 'Operational talent · Bilingual service',
-    heroLine1: 'The right people.', heroAccent: 'Right when', heroLine2: 'the operation needs them.',
-    heroLead: 'We connect demanding businesses with people ready to contribute, integrate, and keep every shift moving.',
-    employerCta: 'I need staff', candidateCta: 'I need a job', callCta: 'Call',
-    heroBadge: 'An extension of your team', heroBadgeSub: 'Staffing · Workforce · Operational support', liveLabel: 'Response from Laredo',
-    signals: [['ES / EN', 'Bilingual team'], ['TEMP → HIRE', 'Flexible hiring'], ['LOCAL', 'Market knowledge']],
-    metrics: [['06', 'integrated solutions'], ['04', 'steps with follow-up'], ['ES/EN', 'bilingual service'], ['LDO', 'local presence']],
-    purposeKicker: 'More than filling a role',
-    purposeTitle: 'Behind every efficient operation, there is a strong team.',
-    purposeAccent: 'We help you build it.',
-    audienceKicker: 'Two paths. One promise.', audienceTitle: 'Make the next move easier.',
-    employer: { label: 'For employers', title: 'Prepared people without losing momentum.', text: 'Tell us the role, shift, and urgency. We shape the response around your operation.', points: ['Temporary and project', 'Temp-to-hire', 'Direct placement'], cta: 'Request talent' },
-    candidate: { label: 'For candidates', title: 'An opportunity that fits where you are going.', text: 'Explore operational, administrative, and leadership roles with bilingual support.', points: ['Simple application', 'Close follow-up', 'Local opportunities'], cta: 'View opportunities' },
-    industriesKicker: 'Operational specialization', industriesTitle: 'We know the work behind every shift.',
-    industriesIntro: 'This is more than filling empty spots. We understand the pace, safety, and skills each environment requires.',
-    industries: [
-      ['Warehouse & distribution', 'Loading, unloading, inventory, picking, packing, and floor operations.'],
-      ['Transportation & yard', 'Yard operations, unit coordination, and equipment support.'],
-      ['Light manufacturing', 'Rework, quality control, labeling, and project crews.'],
-      ['Logistics administration', 'Traffic, customer service, supervision, safety, and accounting.'],
-    ],
-    servicesKicker: 'Integrated solutions', servicesTitle: 'More capacity to respond. Less friction to move forward.',
-    services: [
-      ['01', 'Staffing', 'Recruiting and selection for temporary, project-based, temp-to-hire, and direct-hire roles.'],
-      ['02', 'Temporary crews', 'Inventory, quality sorting, serial scanning, rework, loading, unloading, and yard cleanup.'],
-      ['03', 'Equipment rental', 'Yard spotter trucks, forklifts, and support while your equipment is being repaired.'],
-      ['04', 'NOM-050 labeling', 'Heat seal, adhesive, sewn labels, and tag fasteners for different product needs.'],
-      ['05', 'Immigration support', 'Document preparation and process guidance through a clear, organized, personal experience.'],
-      ['06', 'Corporate events', 'Planning, environments, installations, grand openings, and experiences for teams and businesses.'],
-    ],
-    transportKicker: 'Employee transportation',
-    transportTitle: 'Getting to work should be simple, too.',
-    transportAccent: 'Coordinated routes that help every shift start on time.',
-    transportText: 'We provide safe, reliable transportation for employees on selected projects and service areas.',
-    transportPoints: ['Pickup from strategic locations', 'Safe and punctual trips', 'Coordination by project and shift'],
-    transportAreas: 'Available areas', transportRoutes: 'Killam · Minas · Mile 13', transportCta: 'Ask about transportation',
-    transportMainLabel: 'Safe transportation', transportArrivalLabel: 'Coordinated arrivals',
-    processKicker: 'Our process', processTitle: 'Understand first. Connect better.',
-    process: [['01', 'Discover', 'The operation, environment, shift, and what makes the role successful.'], ['02', 'Recruit', 'We source and evaluate people with intention, not just availability.'], ['03', 'Connect', 'We introduce prepared talent with clear expectations.'], ['04', 'Support', 'We follow up after day one to protect the relationship and result.']],
-    jobKicker: 'Featured opening · Ask about availability', jobTitle: 'Team Lead', jobPay: '$17', jobPayUnit: 'per hour · based on experience',
-    jobText: 'We are looking for practical leadership, an operational mindset, and the drive to grow with a team in motion.',
-    jobTags: ['Leadership', 'Operations', 'Laredo, TX'], jobCta: 'Apply for this role', rolesTitle: 'Possible openings',
-    rolesNote: 'Positions and projects vary by availability. Contact us to confirm current openings.',
-    roles: ['General Labor', 'Quality Inspection', 'Gate Guard', 'Yard Mule Operator', 'Traffic Coordinator', 'CSR / Customer Service', 'Servers', 'Cooks', 'Team Lead', 'Out-of-town Projects', 'Data Entry', 'Forklift Operators', 'Warehouse Auditor', 'Griddle Cooks', 'Warehouse Associates', 'Traffic Clerks', 'Administrative Assistants', 'Supervisors', 'Safety Coordinators', 'Accounting Personnel'],
-    differenceKicker: 'Why Multiservices', differenceTitle: 'Close to the operation. Close to the people.',
-    differenceText: 'Visible, practical solutions for seasons, new projects, and production changes.',
-    showcaseSlides: [
-      ['NOM-050 labeling', 'Labeling prepared for every product.', 'Heat seal, adhesive, sewn labels, and tag fasteners delivered through an organized process with close follow-up.', 'Team applying and scanning labels on boxes inside a warehouse'],
-      ['Project crews', 'More hands when the operation demands it.', 'Inventory, quality sorting, rework, loading, unloading, and yard cleanup shaped around the project scope.', 'Operations crew meeting to coordinate a logistics project'],
-      ['Yard truck rental', 'Equipment that keeps the yard moving.', 'Yard spotter trucks available to protect continuity while a unit is being repaired.', 'Yard spotter truck coupling a trailer in front of loading docks'],
-    ],
-    faqKicker: 'Frequently asked questions', faqTitle: 'Clear information before you begin.',
-    faqs: [
-      ['What types of hiring do you offer?', 'Temporary, project-based, temp-to-hire, and direct placement, depending on each employer’s needs.'],
-      ['How can I apply for a job?', 'Complete the short form or message us on WhatsApp. The team will explain the next steps and how to share your résumé.'],
-      ['Do you offer employee transportation?', 'It is available for selected projects and locations. Confirm current availability with the team when you apply.'],
-      ['What does an employer need to get started?', 'The role, shift, location, start date, number of people, and any safety or experience requirements.'],
-    ],
-    formKicker: 'Your next move starts here', formTitle: 'Tell us what you need.', formIntro: 'Apply for an opening or request staff in under two minutes.',
-    candidateTab: 'I need a job', employerTab: 'I need staff', name: 'Full name', phone: 'Phone', email: 'Email', role: 'Role of interest', rolePrompt: 'Select an opening', roleOther: 'Another position', roleOtherLabel: 'Enter the role you are interested in', roleHelp: 'Choose a possible opening or select “Another position”.', company: 'Company', need: 'What kind of staff do you need?', message: 'Additional message', submit: 'Prepare request',
-    candidateNote: 'You can attach your résumé as a PDF. It will be stored privately for authorized staff.', privacy: 'By submitting, you authorize the team to use this information to evaluate your application and contact you.',
-    successTitle: 'Your request is ready.', successText: 'Review your information and choose how you want to contact the Multiservices team.',
-    emailCta: 'Continue by email', whatsappCta: 'Continue on WhatsApp', editCta: 'Edit information',
-    footerLine1: 'Connecting talent.', footerLine2: 'Strengthening operations.', footerContact: 'Contact', footerVisit: 'Visit us', footerSocial: 'Follow us',
-    mobileApply: 'Apply', mobileHire: 'Hire', mobileCall: 'Call',
-  },
-} as const;
+
 
 const photoWidths = [640, 960, 1440];
 
@@ -214,6 +65,7 @@ export default function HomeClient({ initialSettings, initialJobs }: { initialSe
   const submissionStartedAt = useRef(0);
   const submissionKey = useRef('');
   const successHeadingRef = useRef<HTMLHeadingElement>(null);
+  const content = applyContentOverrides(homeContent, siteSettings.contentOverrides || {});
   const t = content[lang];
 
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);

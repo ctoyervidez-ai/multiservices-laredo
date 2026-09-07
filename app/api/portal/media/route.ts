@@ -45,6 +45,8 @@ export async function POST(request: Request) {
       FROM site_settings s LEFT JOIN media_assets m ON m.id = s.${slots[slot]} AND m.tenant_id = s.tenant_id
       WHERE s.tenant_id = ? LIMIT 1`).bind(context.tenantId).first<{ id: string | null; objectKey: string | null }>();
     if (!previous) return respond({ error: 'No encontramos la configuración del sitio.' }, 404);
+    const expected = String(form.get('expectedMediaId') || '');
+    if ((previous.id || '') !== expected) return respond({ error: 'Otra persona cambió esta foto. Actualiza antes de reemplazarla.' }, 409);
 
     const id = crypto.randomUUID();
     objectKey = `tenants/${context.tenantId}/images/${id}.webp`;
@@ -57,16 +59,17 @@ export async function POST(request: Request) {
     const statements = [
       database.prepare(`INSERT INTO media_assets
         (id, tenant_id, object_key, filename, content_type, size_bytes, alt_es, alt_en, visibility, created_by, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'public', ?, ?)`)
-        .bind(id, context.tenantId, objectKey, file.name.slice(0, 120), file.type, file.size, altEs, altEn, context.user.userId, now),
-      database.prepare(`UPDATE site_settings SET ${slots[slot]} = ?, updated_at = ?, updated_by = ? WHERE tenant_id = ?`)
-        .bind(id, now, context.user.userId, context.tenantId),
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?, 'public', ?, ? WHERE EXISTS
+          (SELECT 1 FROM site_settings WHERE tenant_id = ? AND COALESCE(${slots[slot]}, '') = ?)`)
+        .bind(id, context.tenantId, objectKey, file.name.slice(0, 120), file.type, file.size, altEs, altEn, context.user.userId, now, context.tenantId, expected),
+      database.prepare(`UPDATE site_settings SET ${slots[slot]} = ?, updated_at = ?, updated_by = ? WHERE tenant_id = ? AND COALESCE(${slots[slot]}, '') = ?`)
+        .bind(id, now, context.user.userId, context.tenantId, expected),
       database.prepare(`INSERT INTO audit_logs
         (id, tenant_id, actor_id, actor_email, action, entity_type, entity_id, summary, created_at)
-        VALUES (?, ?, ?, ?, 'media.uploaded', 'media_asset', ?, ?, ?)`)
+        SELECT ?, ?, ?, ?, 'media.uploaded', 'media_asset', ?, ?, ? WHERE changes() > 0`)
         .bind(crypto.randomUUID(), context.tenantId, context.user.userId, context.user.email, id, `Reemplazó la fotografía: ${slot}`, now),
     ];
-    if (previous?.id) statements.push(database.prepare(`UPDATE media_assets SET visibility = 'retired' WHERE tenant_id = ? AND id = ?`).bind(context.tenantId, previous.id));
+    if (previous?.id) statements.push(database.prepare(`UPDATE media_assets SET visibility = 'retired' WHERE tenant_id = ? AND id = ? AND EXISTS (SELECT 1 FROM site_settings WHERE tenant_id = ? AND ${slots[slot]} = ?)`).bind(context.tenantId, previous.id, context.tenantId, id));
     const results = await database.batch(statements);
     if (!results[1]?.meta.changes) throw new Error('site_settings_missing');
     databaseCommitted = true;

@@ -929,3 +929,32 @@ footer { padding-top:95px; background:linear-gradient(180deg,#011325,#000b15); c
 .privacy-page a, .operations-contact a { text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
 @media (max-width: 700px) { .operations-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); } .operations-panel { padding: 18px; } }
 @media (max-width: 380px) { .operations-metrics { grid-template-columns: 1fr; } }
+.portal-sync-status { font-size: .875rem; color: #42576a; margin-bottom: 18px; }
+.portal-device { padding: 16px 24px; background: #edf2f6; color: #173049; font-size: 1rem; }
+.portal-device p { max-width: 800px; line-height: 1.6; margin: 16px 0; }
+.portal-sticky-actions { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; background: white; border-top: 1px solid #b9c5cf; padding: 16px 0; z-index: 3; }
+.content-field { padding: 16px 0; border-top: 1px solid #dde3e8; }
+.content-field textarea { width: 100%; padding: 12px; border: 1px solid #a6b4c2; border-radius: 8px; font-size: 1rem; line-height: 1.6; resize: vertical; }
+.invitation-result { padding: 16px; background: #edf2f6; border-radius: 12px; }
+.invitation-result input { width: 100%; }
+.activity-entry { display: grid; gap: 6px; padding: 18px 0; border-top: 1px solid #dde3e8; overflow-wrap: anywhere; }
+.activity-entry small { font-size: .875rem; }
+.portal-content, .portal-panel, .portal-workspace, .portal-page-heading > div { min-width: 0; }
+.portal-shell button, .portal-shell select, .portal-device button, .portal-auth-submit { min-height: 44px; }
+.portal-shell input, .portal-shell textarea, .portal-shell select, .portal-auth-field input { font-size: max(1rem,16px); }
+.portal-sidebar nav { overflow-y: auto; min-height: 0; }
+.portal-modal-backdrop { padding: max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom)); }
+.job-editor-modal { max-height: calc(100dvh - 24px); }
+.job-editor-body { overscroll-behavior: contain; }
+.portal-topbar { padding-top: max(12px,env(safe-area-inset-top)); }
+@media (max-width: 600px) {
+  .editor-grid, .editor-grid.three, .photo-slot-grid { grid-template-columns: minmax(0,1fr); }
+  .editor-grid .wide { grid-column: auto; }
+  .job-editor-modal footer { flex-wrap: wrap; gap: 12px; }
+  .job-editor-modal footer label { width: 100%; }
+  .job-editor-modal footer button { flex: 1; }
+  .operations-filters > label { flex: 1 1 100%; min-width: 0; }
+  .operations-filters input, .operations-filters select { width: 100%; }
+  .portal-sticky-actions > span { flex-basis: 100%; }
+  .portal-page-heading h1 { overflow-wrap: anywhere; font-size: clamp(1.7rem,7vw,2.4rem); }
+}

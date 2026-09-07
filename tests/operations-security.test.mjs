@@ -34,6 +34,8 @@ const auth = load(resolve(root, 'lib/portal-auth.ts'));
 const notifications = load(resolve(root, 'lib/notifications.ts'));
 const email = load(resolve(root, 'lib/email-delivery.ts'));
 const operations = load(resolve(root, 'app/api/portal/operations/route.ts'));
+const team = load(resolve(root, 'app/api/portal/team/route.ts'));
+const contentApi = load(resolve(root, 'app/api/portal/content/route.ts'));
 beforeEach(() => {
   sqlite?.close(); sqlite = new DatabaseSync(':memory:'); tenant = 'test-tenant'; emailConfig = null; messages = [];
   for (const file of readdirSync(resolve(root, 'drizzle')).filter(f => f.endsWith('.sql')).sort()) sqlite.exec(readFileSync(resolve(root, 'drizzle', file), 'utf8'));
@@ -111,6 +113,47 @@ test('only the owner can read business contacts; cross-tenant IDs cannot be upda
   sqlite.prepare("UPDATE memberships SET role = 'owner' WHERE tenant_id = ?").run(tenant);
   sqlite.prepare(`INSERT INTO inquiries (id,tenant_id,reference,submission_key,full_name,company,phone,email,need,consent_at,created_at,updated_at) VALUES ('other','another-tenant','REF','key','Test','Company','9565550100','test@example.test','Need','now','now','now')`).run();
   const mutate = new Request('http://localhost:3001/api/portal/operations', { method:'POST', headers: { origin: 'http://localhost:3001', 'content-type': 'application/json', cookie }, body: JSON.stringify({ action:'inquiry_status',id:'other',status:'won' }) });
-  assert.equal((await operations.POST(mutate)).status, 404);
+  assert.equal((await operations.POST(mutate)).status, 409);
   assert.equal(sqlite.prepare("SELECT status FROM inquiries WHERE id='other'").get().status, 'new');
+});
+
+test('invitations activate once, reject expiry and roles outside the allowlist', async()=>{
+  await admin();
+  await assert.rejects(auth.createPortalInvite(tenant,'employee@example.test','owner'),/permiso/);
+  const invite=await auth.createPortalInvite(tenant,'employee@example.test','editor');
+  const token=new URL(invite.url).hash.slice(7);
+  const input={token,displayName:'Editor de prueba',password:'Invited-test-password-123!',confirmPassword:'Invited-test-password-123!'};
+  tenant='another-tenant';await assert.rejects(auth.acceptPortalInvite(request(),input),/enlace/);tenant='test-tenant';
+  sqlite.prepare("UPDATE portal_invites SET expires_at='2000-01-01'").run();await assert.rejects(auth.acceptPortalInvite(request(),input),/enlace/);
+  sqlite.prepare("UPDATE portal_invites SET expires_at='2099-01-01'").run();
+  await auth.acceptPortalInvite(request(),input);await assert.rejects(auth.acceptPortalInvite(request(),input),/enlace/);
+  const login=await auth.authenticatePortalAdmin(request(),{email:'employee@example.test',password:input.password});
+  assert.ok(login.identity);assert.equal(sqlite.prepare("SELECT role FROM memberships WHERE email='employee@example.test'").get().role,'editor');
+  await assert.rejects(auth.createPortalInvite(tenant,'employee@example.test','recruiter'),/cuenta/);
+});
+
+test('owner suspends a colleague, invalidates sessions, and cannot modify owner access',async()=>{
+  const owner=await admin(),cookie=owner.setCookie.split(';')[0];
+  const invite=await auth.createPortalInvite(tenant,'employee@example.test','editor');
+  const password='Invited-test-password-123!';
+  await auth.acceptPortalInvite(request(),{token:new URL(invite.url).hash.slice(7),displayName:'Test employee',password,confirmPassword:password});
+  const employee=await auth.authenticatePortalAdmin(request(),{email:'employee@example.test',password});
+  const send=(body)=>team.POST(new Request('http://localhost:3001/api/portal/team',{method:'POST',headers:{origin:'http://localhost:3001','content-type':'application/json',cookie},body:JSON.stringify(body)}));
+  const update={action:'update_user',id:employee.identity.userId,version:1,role:'recruiter',status:'disabled'};
+  assert.equal((await send(update)).status,200);
+  assert.equal(await auth.getPortalIdentityFromCookie(employee.setCookie.split(';')[0],'localhost:3001'),null);
+  assert.equal((await send({...update,role:'editor'})).status,409);
+  assert.equal(sqlite.prepare("SELECT role FROM memberships WHERE email='employee@example.test'").get().role,'recruiter');
+  assert.equal((await send({...update,id:owner.identity.userId})).status,409);
+});
+
+test('content editing rejects unsafe keys and conflicting revisions without overwriting saved text',async()=>{
+  const owner=await admin(),cookie=owner.setCookie.split(';')[0];
+  const send=body=>contentApi.POST(new Request('http://localhost:3001/api/portal/content',{method:'POST',headers:{origin:'http://localhost:3001','content-type':'application/json',cookie},body:JSON.stringify(body)}));
+  assert.equal((await send({revision:0,values:{'es.services.0.1':'Servicio actualizado'}})).status,200);
+  assert.equal((await send({revision:0,values:{'es.services.0.1':'Texto antiguo'}})).status,409);
+  assert.equal(JSON.parse(sqlite.prepare('SELECT values_json FROM site_content').get().values_json)['es.services.0.1'],'Servicio actualizado');
+  assert.equal((await send({revision:1,values:{'__proto__.polluted':'yes'}})).status,400);
+  sqlite.prepare("UPDATE memberships SET role='recruiter'").run();
+  assert.equal((await send({revision:1,values:{'es.services.0.1':'No autorizado'}})).status,403);
 });

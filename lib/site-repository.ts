@@ -84,8 +84,10 @@ export async function getSiteSettings(tenantId = getSiteTenantId()): Promise<Sit
     FROM site_settings s WHERE s.tenant_id = ? LIMIT 1`)
     .bind(tenantId).first<Omit<SiteSettings, 'heroImageUrl' | 'transportImageUrl' | 'operationsImageUrl'>>();
   if (!row) return defaultSettings;
+  const content = await getD1().prepare('SELECT values_json AS content FROM site_content WHERE tenant_id = ?').bind(tenantId).first<{ content: string }>();
   return {
     ...row,
+    contentOverrides: content ? JSON.parse(content.content) : {},
     heroImageUrl: row.heroMediaId ? `/media/${row.heroMediaId}` : null,
     transportImageUrl: row.transportMediaId ? `/media/${row.transportMediaId}` : null,
     operationsImageUrl: row.operationsMediaId ? `/media/${row.operationsMediaId}` : null,
