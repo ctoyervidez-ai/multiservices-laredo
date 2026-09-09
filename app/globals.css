@@ -760,6 +760,25 @@ footer { padding-top:95px; background:linear-gradient(180deg,#011325,#000b15); c
 .candidate-actions select { width:100%; min-height:35px; padding:0 9px; border:1px solid #0c375c1c; background:#f7f8f7; color:#344751; font-size:9px; font-weight:800; }
 .candidate-actions>a,.candidate-actions>button,.candidate-actions>span { min-height:31px; display:flex; align-items:center; gap:7px; padding:0 8px; border:1px solid #0c375c16; background:white; color:#53656f; font:inherit; font-size:9px; font-weight:760; text-align:left; cursor:pointer; }
 .candidate-actions>button:disabled { opacity:.6; cursor:wait; }
+.inquiries-section { margin-bottom:32px; min-width:0; }
+.inquiries-section .portal-panel-head { padding:0 0 18px; gap:16px; }
+.inquiries-section .portal-panel-head h2 { margin:0 0 6px; font-size:20px; color:var(--navy-deep); }
+.inquiry-count { flex-shrink:0; padding:7px 12px; background:#e8eef1; border-radius:20px; color:#395765; font-size:12px; }
+.inquiry-toolbar>.inquiry-filter { width:auto; padding:0; background:white; }
+.inquiry-filter select { min-height:46px; width:100%; padding:0 14px; border:1px solid #0c375c1c; color:#344751; background:white; font:inherit; font-size:13px; }
+.inquiry-list>article { grid-template-columns:minmax(170px,1fr) minmax(175px,1fr) minmax(180px,1.1fr) 160px; }
+.inquiry-list>article>div { min-width:0; }
+.inquiry-list .candidate-main h2 { overflow:visible; white-space:normal; overflow-wrap:anywhere; }
+.inquiry-list .candidate-main p { display:flex; align-items:center; gap:5px; margin-top:5px; overflow-wrap:anywhere; }
+.inquiry-list .candidate-contact a { white-space:normal; overflow-wrap:anywhere; min-height:32px; }
+.inquiry-list .candidate-message { overflow-wrap:anywhere; }
+.inquiry-list .candidate-actions select,.inquiry-list .candidate-actions>a { min-height:44px; }
+.inquiry-empty { padding:40px 24px; text-align:center; background:white; color:#697780; border:1px solid #0c375c14; }
+.inquiry-empty>svg { color:#987000; }
+.inquiry-empty h3 { margin:12px 0 8px; color:var(--navy-deep); }
+.inquiry-empty p { font-size:14px; }
+@media(max-width:1250px) { .inquiry-list>article { grid-template-columns:minmax(0,1fr) minmax(0,1fr); } .inquiry-list .candidate-actions { grid-column:auto; display:grid; } }
+@media(max-width:600px) { .inquiry-list>article { grid-template-columns:minmax(0,1fr); } .inquiries-section .portal-panel-head { align-items:flex-start; flex-wrap:wrap; } .inquiry-toolbar>.inquiry-filter { width:100%; } }
 .content-editor { display:grid; gap:14px; }
 .editor-panel,.photo-editor { padding:26px; }
 .editor-section-head { display:grid; grid-template-columns:38px 1fr; gap:13px; align-items:start; margin-bottom:24px; }
