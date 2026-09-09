@@ -16,10 +16,17 @@ type RuntimeEnv = {
   PORTAL_AUTH_LOOKUP_KEY_V1?: string;
   SITE_TENANT_ID?: string;
   SITE_NAME?: string;
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
 };
 
 function runtimeEnv() {
   return env as unknown as RuntimeEnv;
+}
+
+export function getEmailConfig() {
+  const { RESEND_API_KEY: apiKey, EMAIL_FROM: from } = runtimeEnv();
+  return apiKey && from ? { apiKey, from } : null;
 }
 
 export function getD1() {

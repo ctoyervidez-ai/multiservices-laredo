@@ -1,6 +1,71 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
+export const portalInvites = sqliteTable('portal_invites', {
+  id: text('id').primaryKey(), tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  email: text('email').notNull(), role: text('role').notNull(), tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: text('expires_at').notNull(), usedAt: text('used_at'), createdAt: text('created_at').notNull(),
+}, t => [index('idx_invites_tenant_email').on(t.tenantId, t.email)]);
+
+export const siteContent = sqliteTable('site_content', {
+  tenantId: text('tenant_id').primaryKey().references(() => tenants.id),
+  values: text('values_json').notNull().default('{}'), revision: integer('revision').notNull().default(0),
+  updatedAt: text('updated_at').notNull(), updatedBy: text('updated_by'),
+});
+
+export const inquiries = sqliteTable('inquiries', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  reference: text('reference').notNull().unique(),
+  submissionKey: text('submission_key').notNull(),
+  fullName: text('full_name').notNull(),
+  company: text('company').notNull(),
+  phone: text('phone').notNull(),
+  email: text('email').notNull(),
+  need: text('need').notNull(),
+  message: text('message').notNull().default(''),
+  status: text('status').notNull().default('new'),
+  consentAt: text('consent_at').notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, (table) => [
+  uniqueIndex('idx_inquiries_tenant_submission').on(table.tenantId, table.submissionKey),
+  index('idx_inquiries_tenant_created').on(table.tenantId, table.createdAt),
+]);
+
+export const notifications = sqliteTable('notifications', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  entityId: text('entity_id').notNull(),
+  recipient: text('recipient').notNull(),
+  subject: text('subject').notNull(),
+  body: text('body').notNull(),
+  status: text('status').notNull().default('pending'),
+  firstAttemptAt: text('first_attempt_at'),
+  attemptedAt: text('attempted_at'),
+  acceptedAt: text('accepted_at'),
+  providerId: text('provider_id'),
+  createdAt: text('created_at').notNull(),
+}, (table) => [index('idx_notifications_tenant_status_created').on(table.tenantId, table.status, table.createdAt)]);
+
+export const dailyMetrics = sqliteTable('daily_metrics', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  day: text('day').notNull(),
+  event: text('event').notNull(),
+  path: text('path').notNull(),
+  count: integer('count').notNull().default(0),
+}, (table) => [index('idx_daily_metrics_tenant_day').on(table.tenantId, table.day)]);
+
+export const passwordResets = sqliteTable('password_resets', {
+  tokenHash: text('token_hash').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => tenants.id),
+  userId: text('user_id').notNull().references(() => portalUsers.id),
+  authVersion: integer('auth_version').notNull(),
+  expiresAt: text('expires_at').notNull(),
+  usedAt: text('used_at'),
+}, (table) => [index('idx_password_resets_expiry').on(table.expiresAt)]);
+
 export const tenants = sqliteTable('tenants', {
   id: text('id').primaryKey(),
   slug: text('slug').notNull().unique(),

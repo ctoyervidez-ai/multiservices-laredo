@@ -1,14 +1,17 @@
+
+import { SITE_ORIGIN } from '@/lib/site-origin';
 import type { Metadata } from 'next';
 import './globals.css';
+import SiteMetrics from './site-metrics';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.ethrovsdraft.com'),
+  metadataBase: new URL(SITE_ORIGIN),
   title: 'Multiservices Laredo | Staffing y soluciones operativas',
   description: 'Staffing bilingüe, reclutamiento, cuadrillas temporales y soluciones operativas para empresas y candidatos en Laredo, Texas.',
   keywords: ['staffing Laredo', 'empleos Laredo TX', 'reclutamiento bilingüe', 'warehouse staffing', 'temp to hire', 'soluciones operativas'],
   alternates: { canonical: '/' },
   robots: { index: true, follow: true },
-  icons: { icon: '/favicon.svg' },
+  icons: { icon: [{ url: '/favicon.svg?v=multiservices', type: 'image/svg+xml' }, { url: '/favicon.ico?v=multiservices', sizes: 'any' }], apple: '/apple-touch-icon.png' },
   openGraph: {
     title: 'Multiservices Laredo | La gente correcta, en el momento correcto',
     description: 'Staffing bilingüe y soluciones operativas desde Laredo, Texas.',
@@ -27,5 +30,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="es"><body>{children}</body></html>;
+  return <html lang="es"><body>{children}<SiteMetrics /></body></html>;
 }

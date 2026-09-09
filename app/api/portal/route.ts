@@ -113,15 +113,15 @@ export async function POST(request: Request) {
         const mutation = database.prepare(`UPDATE jobs SET slug = ?, title_es = ?, title_en = ?, summary_es = ?, summary_en = ?,
           description_es = ?, description_en = ?, requirements_es = ?, requirements_en = ?, location = ?, shift = ?,
           employment_type = ?, pay_min = ?, pay_max = ?, pay_unit = ?, openings = ?, status = ?, featured = ?,
-          closes_at = ?, published_at = ?, updated_at = ?, updated_by = ? WHERE tenant_id = ? AND id = ?`)
+          closes_at = ?, published_at = ?, updated_at = ?, updated_by = ? WHERE tenant_id = ? AND id = ? AND updated_at = ?`)
           .bind(values.slug, values.titleEs, values.titleEn, values.summaryEs, values.summaryEn,
             values.descriptionEs, values.descriptionEn, values.requirementsEs, values.requirementsEn,
             values.location, values.shift, values.employmentType, values.payMin, values.payMax, values.payUnit,
             values.openings, status, values.featured, values.closesAt,
             status === 'published' ? existing.publishedAt || now : existing.publishedAt,
-            now, context.user.userId, context.tenantId, id);
+            now, context.user.userId, context.tenantId, id, clean(data.updatedAt, 40));
         const [result] = await database.batch([mutation, auditStatement(database, context, 'job.updated', 'job', id, `Actualizó la vacante ${titleEs}`, now)]);
-        if (!result.meta.changes) return response({ error: 'No encontramos esa vacante.' }, 404);
+        if (!result.meta.changes) return response({ error: 'La vacante cambió en otro dispositivo. Cierra el editor, actualiza y vuelve a intentarlo.' }, 409);
       } else {
         const mutation = database.prepare(`INSERT INTO jobs (
           id, tenant_id, slug, title_es, title_en, summary_es, summary_en, description_es, description_en,
@@ -142,10 +142,10 @@ export async function POST(request: Request) {
         .bind(context.tenantId, id).first<{ id: string }>();
       if (!existing) return response({ error: 'No encontramos esa vacante.' }, 404);
       const [archived] = await database.batch([
-        database.prepare(`UPDATE jobs SET status = 'archived', updated_at = ?, updated_by = ? WHERE tenant_id = ? AND id = ? AND status != 'archived'`).bind(now, context.user.userId, context.tenantId, id),
+        database.prepare(`UPDATE jobs SET status = 'archived', updated_at = ?, updated_by = ? WHERE tenant_id = ? AND id = ? AND status != 'archived' AND updated_at = ?`).bind(now, context.user.userId, context.tenantId, id, clean(payload.expectedUpdatedAt,40)),
         auditStatement(database, context, 'job.archived', 'job', id, 'Archivó una vacante', now),
       ]);
-      if (!archived.meta.changes) return response({ error: 'No encontramos esa vacante.' }, 404);
+      if (!archived.meta.changes) return response({ error: 'La vacante cambió. Actualiza el portal.' }, 409);
     } else if (action === 'application_status') {
       if (!can(context.role, 'manageApplications')) return response({ error: 'No tienes permiso para actualizar candidatos.' }, 403);
       const id = clean(payload.id, 80);
@@ -155,11 +155,11 @@ export async function POST(request: Request) {
         .bind(context.tenantId, id).first<{ id: string }>();
       if (!existing) return response({ error: 'No encontramos esa solicitud.' }, 404);
       const [updated] = await database.batch([
-        database.prepare('UPDATE applications SET status = ?, updated_at = ? WHERE tenant_id = ? AND id = ?')
-          .bind(status, now, context.tenantId, id),
+        database.prepare('UPDATE applications SET status = ?, updated_at = ? WHERE tenant_id = ? AND id = ? AND updated_at = ?')
+          .bind(status, now, context.tenantId, id, clean(payload.expectedUpdatedAt,40)),
         auditStatement(database, context, 'application.status_changed', 'application', id, `Cambió una solicitud a ${status}`, now),
       ]);
-      if (!updated.meta.changes) return response({ error: 'No encontramos esa solicitud.' }, 404);
+      if (!updated.meta.changes) return response({ error: 'La solicitud cambió. Actualiza el portal.' }, 409);
     } else if (action === 'save_settings') {
       if (!can(context.role, 'editContent')) return response({ error: 'No tienes permiso para editar el sitio.' }, 403);
       const data = (payload.settings || {}) as Record<string, unknown>;
@@ -176,13 +176,13 @@ export async function POST(request: Request) {
       }
       const [updated] = await database.batch([database.prepare(`UPDATE site_settings SET hero_line_1_es = ?, hero_accent_es = ?, hero_line_2_es = ?,
         hero_lead_es = ?, hero_line_1_en = ?, hero_accent_en = ?, hero_line_2_en = ?, hero_lead_en = ?,
-        contact_phone = ?, contact_whatsapp = ?, contact_email = ?, updated_at = ?, updated_by = ? WHERE tenant_id = ?`)
+        contact_phone = ?, contact_whatsapp = ?, contact_email = ?, updated_at = ?, updated_by = ? WHERE tenant_id = ? AND updated_at = ?`)
         .bind(settings.heroLine1Es, settings.heroAccentEs, settings.heroLine2Es, settings.heroLeadEs,
           settings.heroLine1En, settings.heroAccentEn, settings.heroLine2En, settings.heroLeadEn,
-          settings.contactPhone, settings.contactWhatsapp, settings.contactEmail, now, context.user.userId, context.tenantId),
+          settings.contactPhone, settings.contactWhatsapp, settings.contactEmail, now, context.user.userId, context.tenantId, clean(data.updatedAt,40)),
         auditStatement(database, context, 'site.updated', 'site_settings', context.tenantId, 'Actualizó el contenido principal del sitio', now),
       ]);
-      if (!updated.meta.changes) return response({ error: 'No encontramos la configuración del sitio.' }, 404);
+      if (!updated.meta.changes) return response({ error: 'Otra persona actualizó el contenido. Tu borrador se conserva; recarga la página para ver la versión actual.' }, 409);
     } else {
       return response({ error: 'Acción desconocida.' }, 400);
     }
@@ -205,6 +205,6 @@ function auditStatement(
 ) {
   return database.prepare(`INSERT INTO audit_logs
     (id, tenant_id, actor_id, actor_email, action, entity_type, entity_id, summary, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE changes() > 0`)
     .bind(crypto.randomUUID(), context.tenantId, context.user.userId, context.user.email, action, entityType, entityId, summary, createdAt);
 }

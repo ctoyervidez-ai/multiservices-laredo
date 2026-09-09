@@ -64,6 +64,7 @@ export type MediaAsset = {
 };
 
 export type SiteSettings = {
+  contentOverrides?: Record<string, string>;
   heroLine1Es: string;
   heroAccentEs: string;
   heroLine2Es: string;

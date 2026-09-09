@@ -22,6 +22,20 @@
       "when": 1788388734543,
       "tag": "0002_married_gorgon",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788780718134,
+      "tag": "0003_outstanding_white_tiger",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788783139701,
+      "tag": "0004_awesome_hex",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import Link from '@/app/site-link';
 
 type AuthMode = 'setup' | 'signin';
 
@@ -68,7 +69,7 @@ export default function PortalAuthForm({ mode }: { mode: AuthMode }) {
       </label>
       <p className="portal-auth-note">Guarda el correo y la contraseña en un lugar seguro. El código de activación quedará invalidado al crear la cuenta.</p>
     </>}
-    {mode === 'signin' && <p className="portal-auth-help">Si olvidaste la contraseña, contacta a Ethrov para verificar la empresa y restablecer el acceso.</p>}
+    {mode === 'signin' && <p className="portal-auth-help"><Link href="/portal/recuperar">Olvidé mi contraseña</Link></p>}
     {error && <p className="portal-auth-error" role="alert">{error}</p>}
     <button className="portal-auth-submit" type="submit" disabled={busy}>
       {busy ? 'Verificando…' : mode === 'setup' ? 'Crear administrador' : 'Entrar al portal'}
