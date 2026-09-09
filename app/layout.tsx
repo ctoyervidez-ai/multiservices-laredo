@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   keywords: ['staffing Laredo', 'empleos Laredo TX', 'reclutamiento bilingüe', 'warehouse staffing', 'temp to hire', 'soluciones operativas'],
   alternates: { canonical: '/' },
   robots: { index: true, follow: true },
-  icons: { icon: '/favicon.svg' },
+  icons: { icon: [{ url: '/favicon.svg?v=multiservices', type: 'image/svg+xml' }, { url: '/favicon.ico?v=multiservices', sizes: 'any' }], apple: '/apple-touch-icon.png' },
   openGraph: {
     title: 'Multiservices Laredo | La gente correcta, en el momento correcto',
     description: 'Staffing bilingüe y soluciones operativas desde Laredo, Texas.',
