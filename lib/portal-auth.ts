@@ -10,7 +10,8 @@ import {
 } from '@/db';
 import { deliverEmail } from '@/lib/email-delivery';
 import { SITE_ORIGIN } from '@/lib/site-origin';
-import { pbkdf2Sync } from 'node:crypto';
+import { pbkdf2Async } from '@noble/hashes/pbkdf2.js';
+import { sha256 } from '@noble/hashes/sha2.js';
 
 const PASSWORD_ALGORITHM = 'pbkdf2-hmac-sha256-v1';
 const PASSWORD_ITERATIONS = 600_000;
@@ -680,9 +681,9 @@ async function derivePasswordHash(password: string, salt: Uint8Array, iterations
   const pepper = requireSecret(getPortalPasswordPepper(), 'PORTAL_PASSWORD_PEPPER_V1');
   const pepperKey = await crypto.subtle.importKey('raw', pepper, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const prehash = await crypto.subtle.sign('HMAC', pepperKey, encoder.encode(password));
-  // The production WebCrypto runtime caps PBKDF2 iterations. Node crypto
-  // preserves our existing 600,000-iteration SHA-256 hashes and salt format.
-  return new Uint8Array(pbkdf2Sync(new Uint8Array(prehash), salt, iterations, PASSWORD_HASH_BYTES, 'sha256'));
+  // Native PBKDF2 is iteration-capped on the deployed runtime. This portable
+  // implementation preserves existing hashes, peppers, salts and work factor.
+  return await pbkdf2Async(sha256, new Uint8Array(prehash), salt, { c: iterations, dkLen: PASSWORD_HASH_BYTES });
   } catch (error) {
     // Report runtime/configuration failures without logging credentials or inputs.
     const message = error instanceof Error ? error.message : '';
