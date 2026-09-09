@@ -675,6 +675,7 @@ function configuredSetup() {
 }
 
 async function derivePasswordHash(password: string, salt: Uint8Array, iterations: number) {
+  try {
   const pepper = requireSecret(getPortalPasswordPepper(), 'PORTAL_PASSWORD_PEPPER_V1');
   const pepperKey = await crypto.subtle.importKey('raw', pepper, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const prehash = await crypto.subtle.sign('HMAC', pepperKey, encoder.encode(password));
@@ -685,6 +686,15 @@ async function derivePasswordHash(password: string, salt: Uint8Array, iterations
     PASSWORD_HASH_BYTES * 8,
   );
   return new Uint8Array(bits);
+  } catch (error) {
+    // Report runtime/configuration failures without logging credentials or inputs.
+    const message = error instanceof Error ? error.message : '';
+    const reason = message.startsWith('portal_auth_configuration:') ? 'password_secret_invalid'
+      : /iteration/i.test(message) ? 'runtime_iteration_limit'
+      : /not supported|unsupported/i.test(message) ? 'runtime_crypto_unsupported' : 'crypto_failure';
+    console.error('portal_password_derivation_failed', reason, error instanceof Error ? error.name : 'UnknownError');
+    throw error;
+  }
 }
 
 async function performDummyPasswordWork(password: string, tenantId: string) {
