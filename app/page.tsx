@@ -4,7 +4,8 @@ import type { PublicJob } from '@/lib/portal-types';
 
 export const dynamic = 'force-dynamic';
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ lang?: string }> }) {
+  const initialLanguage = (await searchParams).lang === 'en' ? 'en' : 'es';
   let settings = defaultSettings;
   let jobs: PublicJob[] = [];
   try {
@@ -12,5 +13,5 @@ export default async function HomePage() {
   } catch {
     // The marketing page remains available with safe defaults during a transient data outage.
   }
-  return <HomeClient initialSettings={settings} initialJobs={jobs} />;
+  return <HomeClient initialSettings={settings} initialJobs={jobs} initialLanguage={initialLanguage} />;
 }

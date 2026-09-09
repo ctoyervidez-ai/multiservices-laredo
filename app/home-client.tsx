@@ -50,8 +50,8 @@ const localBusinessSchema = {
   sameAs: ['https://www.instagram.com/multiservicesldo'],
 };
 
-export default function HomeClient({ initialSettings, initialJobs }: { initialSettings: SiteSettings; initialJobs: PublicJob[] }) {
-  const [lang, setLang] = useState<Language>('es');
+export default function HomeClient({ initialSettings, initialJobs, initialLanguage = 'es' }: { initialSettings: SiteSettings; initialJobs: PublicJob[]; initialLanguage?: Language }) {
+  const [lang, setLang] = useState<Language>(initialLanguage);
   const [audience, setAudience] = useState<Audience>('candidate');
   const [menuOpen, setMenuOpen] = useState(false);
   const [serviceSlide, setServiceSlide] = useState(0);
