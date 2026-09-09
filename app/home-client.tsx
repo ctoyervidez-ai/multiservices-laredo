@@ -47,7 +47,7 @@ const localBusinessSchema = {
   email: DEFAULT_CONTACT_EMAIL,
   address: { '@type': 'PostalAddress', streetAddress: '1316 Zaragoza St.', addressLocality: 'Laredo', addressRegion: 'TX', postalCode: '78040', addressCountry: 'US' },
   areaServed: 'Laredo, Texas',
-  sameAs: ['https://www.instagram.com/multiservicesldo'],
+  sameAs: ['https://www.instagram.com/multiservicesldo', 'https://www.facebook.com/p/Multiservices-Laredo-61557726029987/'],
 };
 
 export default function HomeClient({ initialSettings, initialJobs, initialLanguage = 'es' }: { initialSettings: SiteSettings; initialJobs: PublicJob[]; initialLanguage?: Language }) {
@@ -335,7 +335,7 @@ export default function HomeClient({ initialSettings, initialJobs, initialLangua
       </div>
 
       <footer>
-        <div className="page-width footer-grid"><div className="footer-brand"><img src="/logo-optimized.webp" width="80" height="82" alt="Multiservices Laredo" /><h2>{t.footerLine1}<em>{t.footerLine2}</em></h2></div><div><b>{t.footerContact}</b><a href={phoneHref}>{contactPhone}</a><a href={`https://wa.me/${contactWhatsapp}`} target="_blank" rel="noreferrer">WhatsApp ↗</a><a href={`mailto:${contactEmail}`}>{contactEmail}</a></div><div><b>{t.footerVisit}</b><a href="https://maps.google.com/?q=1316+Zaragoza+St+Laredo+TX+78040" target="_blank" rel="noreferrer">1316 Zaragoza St.<br />Laredo, TX 78040 ↗</a></div><div><b>{t.footerSocial}</b><a href="https://www.instagram.com/multiservicesldo" target="_blank" rel="noreferrer">Instagram ↗</a><Link href="/portal">{lang === 'es' ? 'Portal de propietarios' : 'Owner portal'} ↗</Link></div></div>
+        <div className="page-width footer-grid"><div className="footer-brand"><img src="/logo-optimized.webp" width="80" height="82" alt="Multiservices Laredo" /><h2>{t.footerLine1}<em>{t.footerLine2}</em></h2></div><div><b>{t.footerContact}</b><a href={phoneHref}>{contactPhone}</a><a href={`https://wa.me/${contactWhatsapp}`} target="_blank" rel="noreferrer">WhatsApp ↗</a><a href={`mailto:${contactEmail}`}>{contactEmail}</a></div><div><b>{t.footerVisit}</b><a href="https://maps.google.com/?q=1316+Zaragoza+St+Laredo+TX+78040" target="_blank" rel="noreferrer">1316 Zaragoza St.<br />Laredo, TX 78040 ↗</a></div><div><b>{t.footerSocial}</b><a href="https://www.instagram.com/multiservicesldo" target="_blank" rel="noreferrer">Instagram ↗</a><a href="https://www.facebook.com/p/Multiservices-Laredo-61557726029987/" target="_blank" rel="noreferrer">Facebook ↗</a><Link href="/portal">{lang === 'es' ? 'Portal de propietarios' : 'Owner portal'} ↗</Link></div></div>
         <div className="page-width footer-bottom"><span>© 2026 Multiservices Laredo LLC</span><Link href="/privacidad">{lang === 'es' ? 'Privacidad' : 'Privacy'}</Link><a href="#top">TOP ↑</a></div>
       </footer>
     </main>
